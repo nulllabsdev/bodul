@@ -1,6 +1,6 @@
 # EDR-0005: Makefile as Task Runner
 
-* **Status:** Proposed
+* **Status:** Accepted
 * **Driver:** @miro
 * **Approver:** @miro
 * **Date:** 2026-01-13
