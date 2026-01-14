@@ -22,3 +22,4 @@ target
 
 # Go binaries
 dev/align-markdown-table-columns/align-markdown-table-columns
+tmp/
