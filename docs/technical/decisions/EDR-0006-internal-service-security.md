@@ -97,6 +97,4 @@ Services integrate by:
 
 ## Links
 
-- [TS-0002: Retriever Service](../specifications/TS-0002-retriever-service.md) — first service using this auth pattern
 - [auth_client library](../../../shared/auth_client) — implementation of this decision
-
