@@ -83,3 +83,15 @@ Build the data foundation for a Croatian & Slovenian price comparison platformâ€
 ## Success Criteria
 
 - [x] Defined retailer codes for all target retailers
+
+## Implementation
+
+The retailer codes are implemented in:
+**[shared/elemental/src/retailer_code.rs](../../../shared/elemental/src/retailer_code.rs)**
+
+When modifying the retailer list:
+1. Update this document first
+2. Update the Rust code to match
+3. Run `cargo test -p elemental` to verify counts match
+
+The test suite validates that code counts match this document.
