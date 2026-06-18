@@ -2,8 +2,8 @@
 
 Status: Draft · Version: 0.1.0 · Scope: `lib/money` (Rust crate) · Phase 1 only
 
-This is an **implementation specification**. It defines the *first* deliverable of
-the `money` crate: a **typed skeleton** in which the Phase 1 public interface
+This is an **implementation specification**. It defines the *first* deliverable
+of the `money` crate: a **typed skeleton** in which the Phase 1 public interface
 exists as real Rust types and function signatures, but **every function body is
 `todo!()`**. The crate compiles and exposes the contract; it implements no
 behaviour.
@@ -13,8 +13,8 @@ It is derived from and subordinate to:
 - [TS001 — Money Specification](./TS001_money-type.md) (authoritative behaviour).
 - [BR001 — Business Requirements](./BR001_initial-business-requirements.md).
 
-If this document and TS001 disagree on a signature or type, **TS001 governs** and
-this document must be corrected.
+If this document and TS001 disagree on a signature or type, **TS001 governs**
+and this document must be corrected.
 
 > **Crate-path note.** TS001 names the crate `libs/money` throughout. The crate
 > actually lives at **`lib/money/`**, next to these docs. This is a known
@@ -134,7 +134,8 @@ Each error enum derives `Debug, Clone, PartialEq, Eq` and implements `Display` +
 
 ## 4. Out of scope (Phase 2 — not in the skeleton)
 
-The following TS001 surface is **omitted** from the skeleton and added in Phase 2:
+The following TS001 surface is **omitted** from the skeleton and added in Phase
+2:
 
 - `format(value, locale?)`, the `Locale` enum, and `FormatError`.
 - Arithmetic & comparison: `add`, `sub`, `neg`, `abs`, `mul_int`, `mul_ratio`,
@@ -145,20 +146,20 @@ The following TS001 surface is **omitted** from the skeleton and added in Phase 
 
 ## 5. Traceability
 
-Each stub will eventually satisfy specific TS001 acceptance criteria. The skeleton
-references these by ID (it does not duplicate them). Phase 1 targets:
+Each stub will eventually satisfy specific TS001 acceptance criteria. The
+skeleton references these by ID (it does not duplicate them). Phase 1 targets:
 
-| Stub                       | TS001 acceptance criteria (Phase 1)                       |
-| -------------------------- | --------------------------------------------------------- |
-| `Money::new` / accessors   | underpin AC-A structural equality/hash rows               |
-| `Currency::exponent`       | §2.2 (returns 2); drives parse fraction handling          |
-| `Money::from_major`        | AC-A-18, AC-A-19                                           |
-| `Money::parse`             | AC-P baseline positives, AC-P-AMB, AC-P-NEG, AC-P-ZERO-3/4 |
-| `Money::serialize`/`deserialize` | AC-S-1 … AC-S-10                                     |
-| crate-wide                 | AC-NFR-1 (determinism), AC-NFR-3 (no mutation)            |
+| Stub                             | TS001 acceptance criteria (Phase 1)                        |
+| -------------------------------- | ---------------------------------------------------------- |
+| `Money::new` / accessors         | underpin AC-A structural equality/hash rows                |
+| `Currency::exponent`             | §2.2 (returns 2); drives parse fraction handling           |
+| `Money::from_major`              | AC-A-18, AC-A-19                                           |
+| `Money::parse`                   | AC-P baseline positives, AC-P-AMB, AC-P-NEG, AC-P-ZERO-3/4 |
+| `Money::serialize`/`deserialize` | AC-S-1 … AC-S-10                                           |
+| crate-wide                       | AC-NFR-1 (determinism), AC-NFR-3 (no mutation)             |
 
-Phase 2 acceptance criteria (AC-F, the arithmetic rows of AC-A, AC-P-RND, negative
-AC-P rows) are not covered by the skeleton.
+Phase 2 acceptance criteria (AC-F, the arithmetic rows of AC-A, AC-P-RND,
+negative AC-P rows) are not covered by the skeleton.
 
 ---
 
