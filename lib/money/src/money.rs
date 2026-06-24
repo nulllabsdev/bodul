@@ -27,9 +27,10 @@ impl Money {
     /// Infallible: every `i64` paired with a supported currency is a valid
     /// `Money` (TS001 §2.9).
     pub fn new(amount_minor: i64, currency: Currency) -> Money {
-        // TODO(phase-1): construct Money { amount_minor, currency }.
-        let _ = (amount_minor, currency);
-        todo!("Money::new — TS001 §2.9")
+        Money {
+            amount_minor,
+            currency,
+        }
     }
 
     /// Combine whole major units and a signed fractional minor-unit component
@@ -51,13 +52,11 @@ impl Money {
 
     /// The signed minor-unit (cents) count.
     pub fn minor_units(&self) -> i64 {
-        // TODO(phase-1): return self.amount_minor.
-        todo!("Money::minor_units — TS001 §2.9")
+        self.amount_minor
     }
 
     /// The currency of this value.
     pub fn currency(&self) -> Currency {
-        // TODO(phase-1): return self.currency.
-        todo!("Money::currency — TS001 §2.9")
+        self.currency
     }
 }

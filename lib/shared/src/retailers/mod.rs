@@ -28,7 +28,6 @@ pub fn sitemap_config(code: RetailerCode) -> Option<SitemapConfig> {
         RetailerCode::MinisForumJp => minisforum_jp::sitemap_config(),
         RetailerCode::MinisForumRu => minisforum_ru::sitemap_config(),
         RetailerCode::MinisForumHk => minisforum_hk::sitemap_config(),
-        RetailerCode::Minisforum => return None,
     };
     Some(config)
 }
