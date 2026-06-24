@@ -26,6 +26,32 @@ The core domain entities are:
   manual inspection and reruns: failed stage, retailer, source URL or artifact ID,
   failure kind/message, and timestamp.
 
+### Tech stack (current)
+
+| Crate / dependency | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `reqwest`          | Blocking HTTP client (sitemap/product fetching) |
+| `quick-xml`        | Sitemap XML parsing                             |
+| `chrono`           | `lastmod` datetime handling                     |
+| `thiserror`        | Error enum derive macros                        |
+| `uuid`             | Entity identifiers                              |
+
+### Code layout
+
+| Path                                  | Crate / module                        | Roadmap stage |
+| ------------------------------------- | ------------------------------------- | ------------- |
+| `lib/shared/`                         | Shared types and retailer config      | —             |
+| `lib/money/`                          | Exact money value type (Phase 1)      | —             |
+| `apps/mvp/`                           | MVP application crate                 | All stages    |
+| `src/sitemap_discovery/`              | Sitemap fetching, parsing, data model | B, C          |
+| `src/retailer_data_ingestion/`        | HTTP client                           | Supporting    |
+| `src/retailer_sourcing/`              | Stage A trigger logic                 | A             |
+| `src/offer_discovery/`                | Product page fetching                 | D             |
+| `src/offer_processing/`               | Product page parsing                  | E             |
+| `src/product_information_management/` | Product write side                    | G             |
+| `src/offer_information_management/`   | Offer write side                      | H             |
+| `src/customer_facing/`                | API + web SPA                         | K             |
+
 ### Core entities
 
 Logical model only; this does not commit the physical database schema.
@@ -145,6 +171,39 @@ flowchart LR
   J --> K
 ```
 
+### Implementation status
+
+| Stage                             | Status                                                                 | Module                                |
+| --------------------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| A — Initiate retail sourcing      | Not started (skeleton only)                                            | `src/retailer_sourcing/`              |
+| B — Sitemap sourcing              | In progress (fetch + parse; storage not wired)                         | `src/sitemap_discovery/`              |
+| C — Sitemap processing            | In progress (extraction + classification; storage + handoff not wired) | `src/sitemap_discovery/`              |
+| D — Fetch product pages           | Not started (empty file)                                               | `src/offer_discovery/`                |
+| E — Process product pages         | Not started (empty file)                                               | `src/offer_processing/`               |
+| F — Classify, detect, categorize  | Not started                                                            | (no module yet)                       |
+| G — Add/update products inventory | Not started (empty file)                                               | `src/product_information_management/` |
+| H — Add/update retailer offers    | Not started (empty file)                                               | `src/offer_information_management/`   |
+| I — Product inventory read side   | Not started                                                            | (no module yet)                       |
+| J — Retailer offers read side     | Not started                                                            | (no module yet)                       |
+| K — Customer-facing API & SPA     | Not started (empty file)                                               | `src/customer_facing/`                |
+
+Supporting infrastructure in place:
+
+- **Retailer configuration** (`lib/shared`): `RetailerCode` enum with 7 variants
+  (EU, US, UK, FR, CA, AU, and a generic `Minisforum` code), plus
+  hardcoded sitemap URLs per region.
+- **HTTP client** (`src/retailer_data_ingestion/`): blocking `reqwest` client
+  with browser-identifying `User-Agent`.
+- **Error types**: `SitemapError` (Fetch / Parse / UnknownRetailer) via
+  `thiserror`.
+- **Data model** (`src/sitemap_discovery/sitemap.rs`): `SitemapDocument` tree,
+  `SitemapUrl`, `SitemapImage`, `SitemapKind` (Product / Collection / Catalog /
+  Other), `ChangeFrequency` with full `FromStr`/`Display`.
+- **XML parser** (`src/sitemap_discovery/parse.rs`): `quick-xml`-based parser
+  for `<sitemapindex>` and `<urlset>` documents, handling Shopify image
+  extensions and `lastmod` dates via `chrono`.
+
+
 ### A. Initiate retail sourcing
 
 Depends on architecture decisions and hardcoded retailer data.
@@ -169,6 +228,10 @@ Depends on Stage A.
 - Fetch and store the main sitemap file.
 - Extract links to other sitemap files, including Shopify locale sitemap files.
 - Fetch and store linked sitemap files.
+- **Current:** recursive fetch and parse of root + child sitemaps works in-memory
+  (`fetch_sitemap` → `fetch_document`). Still missing: Stage A trigger
+  integration (no retailer loop yet), sitemap artifact persistence to
+  PostgreSQL, and per-retailer batch runs.
 
 Done when:
 
@@ -186,6 +249,11 @@ Depends on Stage B.
   title, and product heading.
 - Store extracted data in PostgreSQL.
 - Send product URLs to Stage D. Collection and catalog processing are deferred.
+- **Current:** URL extraction, `SitemapKind` classification from URL filename,
+  `lastmod` parsing via `chrono`, image metadata extraction, and recursive
+  tree queries (`all_urls`, `urls_of_kind`) are implemented. Still missing:
+  PostgreSQL storage of extracted URL records, per-retailer batch processing,
+  and handoff to Stage D.
 
 Done when:
 
