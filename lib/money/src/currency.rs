@@ -13,6 +13,14 @@ pub enum Currency {
     CAD,
     /// Australian Dollar (ISO 036).
     AUD,
+    /// Pound Sterling (ISO 826).
+    GBP,
+    /// Japanese Yen (ISO 392).
+    JPY,
+    /// South Korean Won (ISO 410).
+    KRW,
+    /// Hong Kong Dollar (ISO 344).
+    HKD,
 }
 
 impl Currency {
