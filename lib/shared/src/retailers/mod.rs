@@ -29,5 +29,10 @@ pub fn sitemap_config(code: RetailerCode) -> Option<SitemapConfig> {
         RetailerCode::MinisForumRu => minisforum_ru::sitemap_config(),
         RetailerCode::MinisForumHk => minisforum_hk::sitemap_config(),
     };
+
+    if config.sitemap_url.is_empty() {
+        return None;
+    }
+
     Some(config)
 }
