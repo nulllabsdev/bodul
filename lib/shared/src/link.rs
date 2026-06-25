@@ -28,22 +28,6 @@ impl LinkKind {
     }
 }
 
-/// Classifies a page URL by Shopify path conventions: `/products/` is a product,
-/// `/collections/` a catalog, `/pages/` and `/blogs/` are content, and anything
-/// else is unknown. Case-insensitive. Reused by every Shopify-based retailer.
-pub fn shopify_from_location(url: &str) -> LinkKind {
-    let path = url.to_lowercase();
-    if path.contains("/products/") {
-        LinkKind::Product
-    } else if path.contains("/collections/") {
-        LinkKind::Catalog
-    } else if path.contains("/pages/") || path.contains("/blogs/") {
-        LinkKind::Content
-    } else {
-        LinkKind::Unknown
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Shared classification helpers for retailer `from_location` rules.
 // ---------------------------------------------------------------------------
@@ -121,36 +105,6 @@ pub fn numeric_suffix_from_location(url: &str) -> LinkKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn classifies_shopify_link_paths() {
-        let cases = [
-            ("https://minisforumpc.eu/products/um890", LinkKind::Product),
-            (
-                "https://minisforumpc.eu/de/products/ms01",
-                LinkKind::Product,
-            ),
-            ("https://minisforumpc.eu/collections/all", LinkKind::Catalog),
-            ("https://minisforumpc.eu/pages/about", LinkKind::Content),
-            (
-                "https://minisforumpc.eu/blogs/news/a-post",
-                LinkKind::Content,
-            ),
-            ("https://minisforumpc.eu/", LinkKind::Unknown),
-            ("https://minisforumpc.eu/agents.md", LinkKind::Unknown),
-        ];
-        for (url, expected) in cases {
-            assert_eq!(shopify_from_location(url), expected, "for {url}");
-        }
-    }
-
-    #[test]
-    fn classification_is_case_insensitive() {
-        assert_eq!(
-            shopify_from_location("https://minisforumpc.eu/Products/UM890"),
-            LinkKind::Product
-        );
-    }
 
     #[test]
     fn labels_link_kinds() {

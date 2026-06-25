@@ -1,5 +1,6 @@
+use super::shopify_from_location;
 use shared::SitemapConfig;
-use shared::link::{LinkKind, shopify_from_location};
+use shared::link::LinkKind;
 
 pub fn sitemap_config() -> SitemapConfig {
     SitemapConfig {
