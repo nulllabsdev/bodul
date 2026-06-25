@@ -1,4 +1,5 @@
-use crate::SitemapConfig;
+use shared::SitemapConfig;
+use shared::link::{LinkKind, shopify_from_location};
 
 pub fn sitemap_config() -> SitemapConfig {
     SitemapConfig {
@@ -7,6 +8,6 @@ pub fn sitemap_config() -> SitemapConfig {
 }
 
 /// MinisForum runs Shopify; classification uses the shared Shopify rule.
-pub fn from_location(url: &str) -> crate::link::LinkKind {
-    crate::link::shopify_from_location(url)
+pub fn from_location(url: &str) -> LinkKind {
+    shopify_from_location(url)
 }

@@ -5,11 +5,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use mvp::retailer_sourcing::classify_link;
 use mvp::sitemap_discovery::sitemap::SitemapDocument;
 use serde::Serialize;
 use shared::link::LinkKind;
 use shared::retailer::RetailerCode;
-use shared::retailers::classify_link;
 
 #[derive(Serialize, Default)]
 struct Group {
