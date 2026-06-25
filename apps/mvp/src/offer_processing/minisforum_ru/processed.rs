@@ -403,12 +403,12 @@ fn make_variant(
     pv: Option<&MinisForumRuProductVariant>,
 ) -> Result<MinisForumRuVariant, String> {
     // When both sources carry a SKU they must agree; lift it to one field.
-    if let (Some(meta_sku), Some(offer_sku)) = (&meta.sku, &offer.sku) {
-        if meta_sku != offer_sku {
-            return Err(format!(
-                "variant sku mismatch: meta={meta_sku:?}, offer={offer_sku:?}"
-            ));
-        }
+    if let (Some(meta_sku), Some(offer_sku)) = (&meta.sku, &offer.sku)
+        && meta_sku != offer_sku
+    {
+        return Err(format!(
+            "variant sku mismatch: meta={meta_sku:?}, offer={offer_sku:?}"
+        ));
     }
 
     let offer_currency = currency_from_code(&offer.currency)?;
