@@ -913,6 +913,7 @@ dependencies = [
  "serde_json",
  "shared",
  "thiserror",
+ "uuid",
 ]
 
 [[package]]

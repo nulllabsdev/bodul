@@ -11,6 +11,7 @@ use shared::SitemapConfig;
 use shared::link::LinkKind;
 use shared::retailer::RetailerCode;
 
+mod model;
 pub mod retailers;
 
 /// Resolves a retailer's sitemap configuration.
