@@ -4,9 +4,11 @@
 //! returns the parsed [`SitemapDocument`] tree (roadmap Stage B). Fetching is
 //! delegated to [`crate::retailer_data_ingestion`]'s client.
 
-pub mod link;
 mod parse;
 pub mod sitemap;
+
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use shared::SitemapConfig;
@@ -30,36 +32,71 @@ pub enum SitemapError {
 
     #[error("no sitemap configuration for retailer {retailer:?}")]
     UnknownRetailer { retailer: RetailerCode },
+
+    #[error("failed to store {path}: {source}")]
+    Store {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
 }
 
 /// Fetches the full sitemap tree for `retailer`.
 ///
 /// Resolves the retailer's root sitemap URLs, fetches them over HTTP, parses
 /// them, and follows every child sitemap so the returned [`SitemapDocument`] can
-/// be queried as one tree.
+/// be queried as one tree. Every retrieved sitemap body is also written verbatim
+/// to `data/raw_sitemap/{retailer}/` as a side effect, for offline inspection.
 pub fn fetch_sitemap(retailer: RetailerCode) -> Result<SitemapDocument, SitemapError> {
-    fetch_with(retailer, Client::get)
+    let config = shared::retailers::sitemap_config(retailer)
+        .ok_or(SitemapError::UnknownRetailer { retailer })?;
+    let dir = PathBuf::from("data/raw_sitemap").join(format!("{retailer:?}").to_lowercase());
+    fetch_config_inner(config, Client::get, Some(&dir))
 }
 
 /// Core of [`fetch_sitemap`] with the fetcher injected, so the resolve → parse →
-/// recurse logic is testable without the network.
+/// recurse logic is testable without the network. Does not persist anything.
+#[cfg(test)]
 fn fetch_with<F>(retailer: RetailerCode, get: F) -> Result<SitemapDocument, SitemapError>
 where
     F: Fn(&str) -> Result<String, FetchError>,
 {
     let config = shared::retailers::sitemap_config(retailer)
-        .ok_or_else(|| SitemapError::UnknownRetailer { retailer })?;
-    fetch_config_with(config, get)
+        .ok_or(SitemapError::UnknownRetailer { retailer })?;
+    fetch_config_inner(config, get, None)
 }
 
+/// Test/helper entry that fetches a known config without persisting anything.
+#[cfg(test)]
 fn fetch_config_with<F>(config: SitemapConfig, get: F) -> Result<SitemapDocument, SitemapError>
 where
     F: Fn(&str) -> Result<String, FetchError>,
 {
+    fetch_config_inner(config, get, None)
+}
+
+/// Fetches every root sitemap in `config` (following children) and merges them
+/// into one tree. When `out_dir` is `Some`, each retrieved body is written there
+/// verbatim; the directory is created up front.
+fn fetch_config_inner<F>(
+    config: SitemapConfig,
+    get: F,
+    out_dir: Option<&Path>,
+) -> Result<SitemapDocument, SitemapError>
+where
+    F: Fn(&str) -> Result<String, FetchError>,
+{
+    if let Some(dir) = out_dir {
+        fs::create_dir_all(dir).map_err(|source| SitemapError::Store {
+            path: dir.display().to_string(),
+            source,
+        })?;
+    }
+
     let mut root_documents = config
         .sitemap_url
         .iter()
-        .map(|url| fetch_document(url, None, &get))
+        .map(|url| fetch_document(url, None, &get, out_dir))
         .collect::<Result<Vec<_>, _>>()?;
 
     if root_documents.len() == 1 {
@@ -78,6 +115,7 @@ fn fetch_document<F>(
     url: &str,
     last_modified: Option<DateTime<Utc>>,
     get: &F,
+    out_dir: Option<&Path>,
 ) -> Result<SitemapDocument, SitemapError>
 where
     F: Fn(&str) -> Result<String, FetchError>,
@@ -86,6 +124,17 @@ where
         url: url.to_string(),
         source: error,
     })?;
+
+    if let Some(dir) = out_dir {
+        let path = dir.join(raw_filename(url));
+        fs::write(&path, &body).map_err(|source| SitemapError::Store {
+            path: path.display().to_string(),
+            source,
+        })?;
+    }
+
+    // Gzipped sitemaps (e.g. `sitemap.xml.gz`) are already decompressed to XML by
+    // the HTTP client, so `body` is always plain XML here.
     let parsed = parse::parse(&body).map_err(|message| SitemapError::Parse {
         url: url.to_string(),
         message,
@@ -102,14 +151,37 @@ where
         Parsed::UrlSet(urls) => document.urls = urls,
         Parsed::Index(children) => {
             for child in children {
-                document
-                    .children
-                    .push(fetch_document(&child.location, child.last_modified, get)?);
+                document.children.push(fetch_document(
+                    &child.location,
+                    child.last_modified,
+                    get,
+                    out_dir,
+                )?);
             }
         }
     }
 
     Ok(document)
+}
+
+/// Turns a sitemap URL into a filesystem-safe, collision-free file name within a
+/// retailer's raw directory. Drops the scheme, replaces every character outside
+/// `[A-Za-z0-9._-]` with `_`, and ensures an `.xml` extension. Including the host,
+/// path, and query keeps distinct child sitemaps (e.g. `?id=1` vs `?id=2`) apart.
+fn raw_filename(url: &str) -> String {
+    let without_scheme = url.split_once("://").map_or(url, |(_, rest)| rest);
+    let mut name: String = without_scheme
+        .chars()
+        .map(|character| match character {
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '.' | '-' | '_' => character,
+            _ => '_',
+        })
+        .collect();
+
+    if !name.ends_with(".xml") {
+        name.push_str(".xml");
+    }
+    name
 }
 
 #[cfg(test)]
@@ -163,7 +235,7 @@ mod tests {
         );
         assert_eq!(document.children.len(), 2);
         // The tree answers as one node.
-        assert_eq!(document.all_urls().count(), 3);
+        assert_eq!(document.all_urls("main").count(), 3);
         assert_eq!(document.urls_of_kind(SitemapKind::Product).len(), 2);
         assert_eq!(document.urls_of_kind(SitemapKind::Collection).len(), 1);
     }
@@ -201,7 +273,7 @@ mod tests {
             document.children[1].location.as_deref(),
             Some("https://example.com/sitemap-b.xml")
         );
-        assert_eq!(document.all_urls().count(), 2);
+        assert_eq!(document.all_urls("main").count(), 2);
     }
 
     #[test]

@@ -123,10 +123,12 @@ pub fn parse(xml: &str) -> Result<Parsed, String> {
                 b"image:image" => {
                     if let (Some(builder), Some(parent)) = (image.take(), url.as_mut()) {
                         if let Some(location) = builder.location {
-                            let mut entry = SitemapImage::new(location);
-                            entry.title = builder.title;
-                            entry.caption = builder.caption;
-                            parent.images.push(entry);
+                            if !location.is_empty() {
+                                let mut entry = SitemapImage::new(location);
+                                entry.title = builder.title;
+                                entry.caption = builder.caption;
+                                parent.images.push(entry);
+                            }
                         }
                     }
                 }
@@ -155,7 +157,10 @@ pub fn parse(xml: &str) -> Result<Parsed, String> {
 impl UrlBuilder {
     fn build(self) -> Option<SitemapUrl> {
         let location = self.location.filter(|location| !location.is_empty())?;
-        let mut entry = SitemapUrl::new(location);
+
+        let source = "xxx".to_string(); // Placeholder; the actual source should be passed in or tracked elsewhere.
+
+        let mut entry = SitemapUrl::new(location, source);
         entry.last_modified = self.last_modified;
         entry.change_frequency = self.change_frequency;
         entry.priority = self.priority;
