@@ -89,7 +89,7 @@ fn main() {
                 continue; // same URL already handled from another detection file
             }
 
-            let Some(filename) = page_filename(&url) else {
+            let Some(filename) = page_filename(url) else {
                 eprintln!("  skip (no path): {url}");
                 continue;
             };
@@ -99,18 +99,18 @@ fn main() {
                 continue;
             }
 
-            if let Some(max) = limit {
-                if downloaded >= max {
-                    println!("reached download limit ({max})");
-                    break 'sources;
-                }
+            if let Some(max) = limit
+                && downloaded >= max
+            {
+                println!("reached download limit ({max})");
+                break 'sources;
             }
 
-            match Client::get(&url) {
+            match Client::get(url) {
                 Ok(body) => match fs::write(&path, body) {
                     Ok(()) => {
                         downloaded += 1;
-                        if downloaded % 25 == 0 {
+                        if downloaded.is_multiple_of(25) {
                             println!("  {downloaded} downloaded...");
                         }
                     }

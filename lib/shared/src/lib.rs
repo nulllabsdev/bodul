@@ -1,6 +1,5 @@
 pub mod link;
 pub mod retailer;
-pub mod retailers;
 
 #[derive(Debug, Clone)]
 pub struct SitemapConfig {

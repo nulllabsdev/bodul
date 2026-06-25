@@ -499,12 +499,13 @@ fn make_variant(
     // Title comes from the offer name (always present); the `meta` title, when
     // present and non-empty, must match it.
     let title = offer.name;
-    if let Some(meta_title) = &meta.title {
-        if !meta_title.is_empty() && meta_title != &title {
-            return Err(format!(
-                "variant title mismatch: meta={meta_title:?}, offer={title:?}"
-            ));
-        }
+    if let Some(meta_title) = &meta.title
+        && !meta_title.is_empty()
+        && meta_title != &title
+    {
+        return Err(format!(
+            "variant title mismatch: meta={meta_title:?}, offer={title:?}"
+        ));
     }
 
     Ok(ZzzVariant {

@@ -4,6 +4,7 @@
 //! returns the parsed [`SitemapDocument`] tree (roadmap Stage B). Fetching is
 //! delegated to [`crate::retailer_data_ingestion`]'s client.
 
+pub mod helpers;
 mod parse;
 pub mod sitemap;
 
@@ -15,6 +16,7 @@ use shared::SitemapConfig;
 use shared::retailer::RetailerCode;
 
 use crate::retailer_data_ingestion::{Client, FetchError};
+use crate::retailer_sourcing::sitemap_config;
 use crate::sitemap_discovery::parse::Parsed;
 use crate::sitemap_discovery::sitemap::SitemapDocument;
 
@@ -48,8 +50,7 @@ pub enum SitemapError {
 /// be queried as one tree. Every retrieved sitemap body is also written verbatim
 /// to `data/raw_sitemap/{retailer}/` as a side effect, for offline inspection.
 pub fn fetch_sitemap(retailer: RetailerCode) -> Result<SitemapDocument, SitemapError> {
-    let config = shared::retailers::sitemap_config(retailer)
-        .ok_or(SitemapError::UnknownRetailer { retailer })?;
+    let config = sitemap_config(retailer).ok_or(SitemapError::UnknownRetailer { retailer })?;
     let dir = PathBuf::from("data/raw_sitemap").join(format!("{retailer:?}").to_lowercase());
     fetch_config_inner(config, Client::get, Some(&dir))
 }
@@ -61,8 +62,7 @@ fn fetch_with<F>(retailer: RetailerCode, get: F) -> Result<SitemapDocument, Site
 where
     F: Fn(&str) -> Result<String, FetchError>,
 {
-    let config = shared::retailers::sitemap_config(retailer)
-        .ok_or(SitemapError::UnknownRetailer { retailer })?;
+    let config = sitemap_config(retailer).ok_or(SitemapError::UnknownRetailer { retailer })?;
     fetch_config_inner(config, get, None)
 }
 

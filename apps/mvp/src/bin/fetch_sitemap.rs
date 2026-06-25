@@ -6,6 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use chrono::Utc;
+use mvp::retailer_sourcing::sitemap_config;
 use mvp::sitemap_discovery;
 use shared::retailer::RetailerCode;
 
@@ -24,7 +25,7 @@ fn main() {
 
     for retailer in RetailerCode::ALL {
         // Skip retailers without a configured storefront (e.g. the generic code).
-        if shared::retailers::sitemap_config(retailer).is_none() {
+        if sitemap_config(retailer).is_none() {
             continue;
         }
 

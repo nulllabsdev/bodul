@@ -104,32 +104,31 @@ pub fn parse(xml: &str) -> Result<Parsed, String> {
             }
             Event::End(event) => match event.name().as_ref() {
                 b"sitemap" => {
-                    if let Some(builder) = child.take() {
-                        if let Some(location) = builder.location {
-                            children.push(ChildRef {
-                                location,
-                                last_modified: builder.last_modified,
-                            });
-                        }
+                    if let Some(builder) = child.take()
+                        && let Some(location) = builder.location
+                    {
+                        children.push(ChildRef {
+                            location,
+                            last_modified: builder.last_modified,
+                        });
                     }
                 }
                 b"url" => {
-                    if let Some(builder) = url.take() {
-                        if let Some(entry) = builder.build() {
-                            urls.push(entry);
-                        }
+                    if let Some(builder) = url.take()
+                        && let Some(entry) = builder.build()
+                    {
+                        urls.push(entry);
                     }
                 }
                 b"image:image" => {
-                    if let (Some(builder), Some(parent)) = (image.take(), url.as_mut()) {
-                        if let Some(location) = builder.location {
-                            if !location.is_empty() {
-                                let mut entry = SitemapImage::new(location);
-                                entry.title = builder.title;
-                                entry.caption = builder.caption;
-                                parent.images.push(entry);
-                            }
-                        }
+                    if let (Some(builder), Some(parent)) = (image.take(), url.as_mut())
+                        && let Some(location) = builder.location
+                        && !location.is_empty()
+                    {
+                        let mut entry = SitemapImage::new(location);
+                        entry.title = builder.title;
+                        entry.caption = builder.caption;
+                        parent.images.push(entry);
                     }
                 }
                 name if leaf.as_deref() == Some(name) => {
@@ -235,10 +234,10 @@ fn parse_lastmod(value: &str) -> Option<DateTime<Utc>> {
     if let Ok(parsed) = DateTime::parse_from_rfc3339(value) {
         return Some(parsed.with_timezone(&Utc));
     }
-    if let Ok(date) = NaiveDate::parse_from_str(value, "%Y-%m-%d") {
-        if let Some(naive) = date.and_hms_opt(0, 0, 0) {
-            return Some(Utc.from_utc_datetime(&naive));
-        }
+    if let Ok(date) = NaiveDate::parse_from_str(value, "%Y-%m-%d")
+        && let Some(naive) = date.and_hms_opt(0, 0, 0)
+    {
+        return Some(Utc.from_utc_datetime(&naive));
     }
     None
 }
