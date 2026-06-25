@@ -1,4 +1,4 @@
-.PHONY: fmt test check gomd wip
+.PHONY: fmt test check docker-build docker-up docker-down gomd wip
 
 fmt:
 	$(MAKE) -C apps/mvp fmt
@@ -14,6 +14,15 @@ check:
 	$(MAKE) -C apps/mvp check
 	$(MAKE) -C lib/money check
 	$(MAKE) -C lib/shared check
+
+docker-build:
+	docker build -t bodul-mvp .
+
+docker-up:
+	docker compose up --build
+
+docker-down:
+	docker compose down
 
 gomd:
 	gomd all .
