@@ -1,0 +1,9 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      BODUL_SERVER_ADDR: 0.0.0.0:3000
+    ports:
+      - "3000:3000"
