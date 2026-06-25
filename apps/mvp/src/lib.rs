@@ -27,5 +27,8 @@ pub mod offer_information_management;
 // Stage K — customer-facing API and web app
 pub mod customer_facing;
 
+// Supporting module for database access
+pub mod database;
+
 // Supporting module for fetching stuff
 pub mod retailer_data_ingestion;

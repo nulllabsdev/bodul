@@ -5,6 +5,7 @@ RUN apt-get update \
         build-essential \
         ca-certificates \
         cmake \
+        libpq-dev \
         pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,7 +23,7 @@ RUN cargo build --release -p mvp --bin server
 FROM debian:bookworm-slim AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates libpq5 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
