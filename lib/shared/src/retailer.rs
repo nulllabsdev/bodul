@@ -34,14 +34,6 @@ impl RetailerCode {
             .find(|code| format!("{code:?}").to_lowercase() == slug)
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct Retailer {
-    pub id: Uuid,
-    pub name: String,
-    pub code: RetailerCode,
-}
-
 #[cfg(test)]
 mod tests {
     use super::RetailerCode;
