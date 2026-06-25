@@ -4,6 +4,7 @@
 //! returns the parsed [`SitemapDocument`] tree (roadmap Stage B). Fetching is
 //! delegated to [`crate::retailer_data_ingestion`]'s client.
 
+pub mod helpers;
 mod parse;
 pub mod sitemap;
 
