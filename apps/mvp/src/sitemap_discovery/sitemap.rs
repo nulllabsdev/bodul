@@ -46,9 +46,9 @@ impl SitemapDocument {
     }
 
     /// Every `<url>` entry in this document and all of its descendants.
-    pub fn all_urls(&self) -> impl Iterator<Item = &SitemapUrl> {
+    pub fn all_urls(&self, source: &str) -> impl Iterator<Item = SitemapUrl> {
         let mut urls = Vec::new();
-        self.collect_urls(&mut urls);
+        self.collect_urls(&mut urls, source);
         urls.into_iter()
     }
 
@@ -60,10 +60,20 @@ impl SitemapDocument {
         urls
     }
 
-    fn collect_urls<'a>(&'a self, urls: &mut Vec<&'a SitemapUrl>) {
-        urls.extend(self.urls.iter());
+    fn collect_urls(&self, urls: &mut Vec<SitemapUrl>, source: &str) {
+        let source = self.location.as_deref().unwrap_or(source);
+        let sourced_urls = self
+            .urls
+            .iter()
+            .cloned()
+            .map(|mut url| {
+                url.source = source.to_string();
+                url
+            })
+            .collect::<Vec<_>>();
+        urls.extend(sourced_urls);
         for child in &self.children {
-            child.collect_urls(urls);
+            child.collect_urls(urls, source);
         }
     }
 
@@ -114,6 +124,8 @@ impl SitemapKind {
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SitemapUrl {
     pub location: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub source: String,
     pub last_modified: Option<DateTime<Utc>>,
     pub change_frequency: Option<ChangeFrequency>,
     /// Priority in `[0.0, 1.0]`.  Use [`with_priority`](Self::with_priority)
@@ -124,14 +136,17 @@ pub struct SitemapUrl {
 }
 
 impl SitemapUrl {
-    pub fn new(location: impl Into<String>) -> Self {
+    pub fn new(location: impl Into<String>, source: impl Into<String>) -> Self {
         let location = location.into();
+        let source = source.into();
         debug_assert!(
             !location.is_empty(),
             "sitemap URL location must not be empty"
         );
+        debug_assert!(!source.is_empty(), "sitemap URL source must not be empty");
         Self {
             location,
+            source,
             last_modified: None,
             change_frequency: None,
             priority: None,
@@ -326,22 +341,51 @@ mod tests {
     fn queries_aggregate_across_the_tree() {
         let mut products = SitemapDocument::at("https://minisforumpc.eu/sitemap_products_1.xml");
         products.urls = vec![
-            SitemapUrl::new("https://minisforumpc.eu/products/um890"),
-            SitemapUrl::new("https://minisforumpc.eu/products/ms01"),
+            SitemapUrl::new(
+                "https://minisforumpc.eu/products/um890",
+                "https://minisforumpc.eu/sitemap.xml",
+            ),
+            SitemapUrl::new(
+                "https://minisforumpc.eu/products/ms01",
+                "https://minisforumpc.eu/sitemap.xml",
+            ),
         ];
 
         let mut collections =
             SitemapDocument::at("https://minisforumpc.eu/sitemap_collections_1.xml");
-        collections.urls = vec![SitemapUrl::new("https://minisforumpc.eu/collections/all")];
+        collections.urls = vec![SitemapUrl::new(
+            "https://minisforumpc.eu/collections/all",
+            "https://minisforumpc.eu/sitemap.xml",
+        )];
 
         let mut root = SitemapDocument::at("https://minisforumpc.eu/sitemap.xml");
         root.children = vec![products, collections];
 
         // The tree answers as one node, recursing into children.
-        assert_eq!(root.all_urls().count(), 3);
+        assert_eq!(
+            root.all_urls("https://minisforumpc.eu/sitemap.xml").count(),
+            3
+        );
         assert_eq!(root.urls_of_kind(SitemapKind::Product).len(), 2);
         assert_eq!(root.urls_of_kind(SitemapKind::Collection).len(), 1);
         assert_eq!(root.urls_of_kind(SitemapKind::Catalog).len(), 0);
+    }
+
+    #[test]
+    fn all_urls_sets_source_from_owning_document() {
+        let mut products = SitemapDocument::at("https://example.com/sitemap_products.xml");
+        products.urls = vec![SitemapUrl::new("https://example.com/products/a", "stale")];
+
+        let mut root = SitemapDocument::at("https://example.com/sitemap.xml");
+        root.urls = vec![SitemapUrl::new("https://example.com/", "stale")];
+        root.children = vec![products];
+
+        let urls = root
+            .all_urls("https://example.com/fallback-sitemap.xml")
+            .collect::<Vec<_>>();
+
+        assert_eq!(urls[0].source, "https://example.com/sitemap.xml");
+        assert_eq!(urls[1].source, "https://example.com/sitemap_products.xml");
     }
 
     #[test]
@@ -384,22 +428,38 @@ mod tests {
 
     #[test]
     fn sets_priority_in_range() {
-        let url = SitemapUrl::new("https://example.com/product").with_priority(0.5);
+        let url = SitemapUrl::new(
+            "https://example.com/product",
+            "https://example.com/sitemap.xml",
+        )
+        .with_priority(0.5);
         assert_eq!(url.priority, Some(0.5));
     }
 
     #[test]
     fn sets_priority_at_bounds() {
-        let url = SitemapUrl::new("https://example.com/product").with_priority(0.0);
+        let url = SitemapUrl::new(
+            "https://example.com/product",
+            "https://example.com/sitemap.xml",
+        )
+        .with_priority(0.0);
         assert_eq!(url.priority, Some(0.0));
 
-        let url = SitemapUrl::new("https://example.com/product").with_priority(1.0);
+        let url = SitemapUrl::new(
+            "https://example.com/product",
+            "https://example.com/sitemap.xml",
+        )
+        .with_priority(1.0);
         assert_eq!(url.priority, Some(1.0));
     }
 
     #[test]
     #[should_panic(expected = "sitemap priority must be in [0.0, 1.0]")]
     fn panics_on_priority_out_of_range() {
-        SitemapUrl::new("https://example.com/product").with_priority(1.5);
+        SitemapUrl::new(
+            "https://example.com/product",
+            "https://example.com/sitemap.xml",
+        )
+        .with_priority(1.5);
     }
 }

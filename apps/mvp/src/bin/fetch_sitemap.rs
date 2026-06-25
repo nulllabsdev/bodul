@@ -59,7 +59,9 @@ fn fetch_and_dump(
     let json = serde_json::to_string_pretty(&document).map_err(|error| error.to_string())?;
 
     let slug = format!("{retailer:?}").to_lowercase();
-    let path = data_dir.join(format!("{slug}-sitemap-{timestamp}.json"));
+    let path = data_dir.join(format!(
+        "processed-sitemaps/{slug}-sitemap-{timestamp}.json"
+    ));
     fs::write(&path, &json).map_err(|error| format!("writing {}: {error}", path.display()))?;
 
     Ok((path, json.len()))

@@ -5,15 +5,18 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mvp::sitemap_discovery::link::LinkKind;
 use mvp::sitemap_discovery::sitemap::SitemapDocument;
 use serde::Serialize;
+use shared::link::LinkKind;
+use shared::retailer::RetailerCode;
+use shared::retailers::classify_link;
 
 #[derive(Serialize, Default)]
 struct Group {
     product: Vec<String>,
     catalog: Vec<String>,
     content: Vec<String>,
+    not_intersted: Vec<String>,
     unknown: Vec<String>,
 }
 
@@ -22,6 +25,7 @@ struct Counts {
     product: usize,
     catalog: usize,
     content: usize,
+    not_intersted: usize,
     unknown: usize,
 }
 
@@ -33,6 +37,7 @@ struct Detection {
 }
 
 fn main() {
+    let sourcedir = PathBuf::from("data/processed-sitemaps");
     let data_dir = PathBuf::from("data");
     let out_dir = data_dir.join("detected");
     if let Err(error) = fs::create_dir_all(&out_dir) {
@@ -40,17 +45,17 @@ fn main() {
         std::process::exit(1);
     }
 
-    let mut sources = match sitemap_dumps(&data_dir) {
+    let mut sources = match sitemap_dumps(&sourcedir) {
         Ok(sources) => sources,
         Err(error) => {
-            eprintln!("error reading {}/: {error}", data_dir.display());
+            eprintln!("error reading {}/: {error}", sourcedir.display());
             std::process::exit(1);
         }
     };
     sources.sort();
 
     if sources.is_empty() {
-        eprintln!("no sitemap dumps found in {}/", data_dir.display());
+        eprintln!("no sitemap dumps found in {}/", sourcedir.display());
         std::process::exit(1);
     }
 
@@ -58,15 +63,20 @@ fn main() {
     let mut failed = 0usize;
 
     for source in &sources {
-        match detect_file(source, &out_dir) {
+        let Some(code) = retailer_for(source) else {
+            eprintln!("skip {}: unrecognized retailer slug", source.display());
+            continue;
+        };
+        match detect_file(source, code, &out_dir) {
             Ok((out_path, counts)) => {
                 println!(
-                    "ok   {} -> {} (product {}, catalog {}, content {}, unknown {})",
+                    "ok   {} -> {} (product {}, catalog {}, content {}, not_intersted {}, unknown {})",
                     source.display(),
                     out_path.display(),
                     counts.product,
                     counts.catalog,
                     counts.content,
+                    counts.not_intersted,
                     counts.unknown,
                 );
                 succeeded += 1;
@@ -84,26 +94,56 @@ fn main() {
     }
 }
 
-/// Reads one sitemap dump, classifies its links, and writes the grouped result.
-fn detect_file(source: &Path, out_dir: &Path) -> Result<(PathBuf, Counts), String> {
+/// Removes duplicate entries within a single list, keeping first occurrences in
+/// their original order.
+fn dedup(list: &mut Vec<String>) {
+    let mut seen = std::collections::HashSet::new();
+    list.retain(|item| seen.insert(item.clone()));
+}
+
+/// Resolves the retailer for a dump from its filename slug (the part before
+/// `-sitemap`, e.g. `minisforumeu-sitemap-….json`). `None` if unrecognized.
+fn retailer_for(path: &Path) -> Option<RetailerCode> {
+    let name = path.file_name()?.to_str()?;
+    let slug = name.split("-sitemap").next()?;
+    RetailerCode::from_slug(slug)
+}
+
+/// Reads one sitemap dump, classifies its links with `code`'s retailer-specific
+/// rules, and writes the grouped result.
+fn detect_file(
+    source: &Path,
+    code: RetailerCode,
+    out_dir: &Path,
+) -> Result<(PathBuf, Counts), String> {
     let json = fs::read_to_string(source).map_err(|error| error.to_string())?;
     let document: SitemapDocument =
         serde_json::from_str(&json).map_err(|error| error.to_string())?;
 
     let mut links = Group::default();
-    for url in document.all_urls() {
-        match LinkKind::from_location(&url.location) {
+    for url in document.all_urls("main") {
+        match classify_link(code, &url.location, &url.source, url.images.len()) {
             LinkKind::Product => links.product.push(url.location.clone()),
             LinkKind::Catalog => links.catalog.push(url.location.clone()),
             LinkKind::Content => links.content.push(url.location.clone()),
+            LinkKind::NotInterested => links.not_intersted.push(url.location.clone()),
             LinkKind::Unknown => links.unknown.push(url.location.clone()),
         }
     }
+
+    // Deduplicate the items within each list independently (a URL can repeat
+    // across child sitemaps); duplicates are not compared across lists.
+    dedup(&mut links.product);
+    dedup(&mut links.catalog);
+    dedup(&mut links.content);
+    dedup(&mut links.not_intersted);
+    dedup(&mut links.unknown);
 
     let counts = Counts {
         product: links.product.len(),
         catalog: links.catalog.len(),
         content: links.content.len(),
+        not_intersted: links.not_intersted.len(),
         unknown: links.unknown.len(),
     };
 
