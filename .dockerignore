@@ -1,0 +1,10 @@
+.git
+.gitignore
+target
+**/target
+
+apps/mvp/data
+docs/_resources
+
+Dockerfile
+compose.yaml
