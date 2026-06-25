@@ -6,13 +6,13 @@
 //! detection files is fetched once. An optional first argument caps the number of
 //! downloads (handy for a quick test run): `fetch_products 20`.
 
+use mvp::retailer_data_ingestion::Client;
+use rand::prelude::IteratorRandom;
+use serde::Deserialize;
+use shared::retailer::RetailerCode;
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use mvp::retailer_data_ingestion::Client;
-use serde::Deserialize;
-use shared::retailer::RetailerCode;
 
 #[derive(Deserialize)]
 struct Detection {
@@ -53,6 +53,10 @@ fn main() {
     'sources: for source in &sources {
         let retailer = retailer_dir(source);
 
+        if retailer != "Zoocityhr" {
+            continue;
+        }
+
         let detection: Detection = match fs::read_to_string(source)
             .map_err(|error| error.to_string())
             .and_then(|json| serde_json::from_str(&json).map_err(|error| error.to_string()))
@@ -75,7 +79,12 @@ fn main() {
             detection.links.product.len()
         );
 
-        for url in detection.links.product {
+        let sample = detection.links.product;
+
+        let mut rng = rand::thread_rng();
+        let sample: Vec<_> = sample.iter().choose_multiple(&mut rng, 20);
+
+        for url in sample {
             if !seen.insert(url.clone()) {
                 continue; // same URL already handled from another detection file
             }
