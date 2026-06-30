@@ -8,12 +8,14 @@ services:
         condition: service_healthy
     environment:
       BODUL_SERVER_ADDR: 0.0.0.0:3000
-      DATABASE_URL: postgres://bodul:bodul@db:5432/bodul
+      DATABASE_URL: postgres://bodul:bodul@172.28.200.10:5432/bodul
+    networks:
+      - bodul
     ports:
       - "3000:3000"
 
   db:
-    image: postgres:17-bookworm
+    image: postgres:18-bookworm
     environment:
       POSTGRES_DB: bodul
       POSTGRES_USER: bodul
@@ -23,10 +25,22 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      bodul:
+        ipv4_address: 172.28.200.10
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # PG18 image expects the mount at /var/lib/postgresql (data goes in a
+      # version subdir), not /var/lib/postgresql/data as in <=17.
+      - postgres-data:/var/lib/postgresql
+
+networks:
+  bodul:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.200.0/24
 
 volumes:
   postgres-data:
