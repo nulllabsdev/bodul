@@ -11,6 +11,10 @@ RUN apt-get update \
 
 WORKDIR /workspace
 
+# Cargo registry config (defines the `margo` registry referenced by mulac-kernel's
+# dependency metadata); required for the git dependency's manifests to load.
+COPY .cargo .cargo
+
 COPY Cargo.toml Cargo.lock ./
 COPY apps/mvp/Cargo.toml apps/mvp/Cargo.toml
 COPY lib/money/Cargo.toml lib/money/Cargo.toml
