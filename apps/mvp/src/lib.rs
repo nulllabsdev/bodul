@@ -95,6 +95,6 @@ pub enum RepositoryError {
     #[error("invalid stored record: {0}")]
     InvalidRecord(#[from] RecordMappingError),
 
-    #[error("unexpected: {0}")]
+    #[error("{0}")]
     Unexpected(String),
 }

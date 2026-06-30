@@ -68,7 +68,7 @@ pub struct ErrorBody {
 pub enum AppError {
     #[error("validation failed: {0}")]
     Validation(String),
-    #[error("storage error: {0}")]
+    #[error("{0}")]
     Storage(String),
 }
 

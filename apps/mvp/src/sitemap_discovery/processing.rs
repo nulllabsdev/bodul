@@ -53,7 +53,7 @@ mod models {
         #[error("sitemap: {0}")]
         Sitemap(#[from] SitemapError),
 
-        #[error("retrieval: {0}")]
+        #[error("processing: {0}")]
         RepositoryError(#[from] RepositoryError),
     }
 }
