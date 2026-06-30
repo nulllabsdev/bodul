@@ -4,12 +4,15 @@ use std::time::Duration;
 use diesel::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PoolError};
 use diesel::{RunQueryDsl, sql_query};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 const DEFAULT_DATABASE_URL: &str = "postgres://bodul:bodul@localhost:5432/bodul";
 const DEFAULT_MAX_CONNECTIONS: u32 = 5;
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: u64 = 5;
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DatabaseConfig {
@@ -55,10 +58,20 @@ pub fn health_check(pool: &DbPool) -> Result<(), DatabaseError> {
     Ok(())
 }
 
+pub fn run_migrations(pool: &DbPool) -> Result<(), DatabaseError> {
+    let mut connection = pool.get()?;
+    connection
+        .run_pending_migrations(MIGRATIONS)
+        .map_err(|error| DatabaseError::Migration(error.to_string()))?;
+    Ok(())
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum DatabaseError {
     #[error("failed to get database connection: {0}")]
     Pool(#[from] PoolError),
     #[error("database query failed: {0}")]
     Query(#[from] diesel::result::Error),
+    #[error("database migration failed: {0}")]
+    Migration(String),
 }

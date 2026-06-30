@@ -1,6 +1,7 @@
 use std::error::Error;
 
-use mvp::database::{self, DbPool};
+use mvp::assembly::io::{AppState, start_mulac};
+use mvp::database;
 use poem::http::StatusCode;
 use poem::middleware::AddData;
 use poem::web::Data;
@@ -8,12 +9,12 @@ use poem::{EndpointExt, Response, Route, Server, get, handler, listener::TcpList
 
 const DEFAULT_ADDR: &str = "127.0.0.1:3000";
 
-fn app(pool: DbPool) -> impl poem::Endpoint {
+fn app(state: AppState) -> impl poem::Endpoint {
     Route::new()
         .at("/", get(index))
         .at("/healthz", get(healthz))
         .at("/readyz", get(readyz))
-        .with(AddData::new(pool))
+        .with(AddData::new(state))
 }
 
 #[handler]
@@ -27,8 +28,8 @@ fn healthz() -> &'static str {
 }
 
 #[handler]
-async fn readyz(Data(pool): Data<&DbPool>) -> Response {
-    let pool = pool.clone();
+async fn readyz(Data(state): Data<&AppState>) -> Response {
+    let pool = state.pool.clone();
     let result = tokio::task::spawn_blocking(move || database::health_check(&pool)).await;
 
     match result {
@@ -47,9 +48,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let addr = std::env::var("BODUL_SERVER_ADDR").unwrap_or_else(|_| DEFAULT_ADDR.to_string());
     let database_config = database::DatabaseConfig::from_env();
     let pool = database::connect(&database_config)?;
+    database::run_migrations(&pool)?;
+    let kernel = start_mulac(pool.clone(), 0)?;
+    let state = AppState::new(pool, kernel.state());
 
     println!("server listening on http://{addr}");
 
-    Server::new(TcpListener::bind(addr)).run(app(pool)).await?;
+    Server::new(TcpListener::bind(addr)).run(app(state)).await?;
     Ok(())
 }

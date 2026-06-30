@@ -5,8 +5,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use mvp::lib_sitemap::io::SitemapDocument;
 use mvp::retailer_sourcing::classify_link;
-use mvp::sitemap_discovery::sitemap::SitemapDocument;
 use serde::Serialize;
 use shared::link::LinkKind;
 use shared::retailer::RetailerCode;
@@ -16,7 +16,7 @@ struct Group {
     product: Vec<String>,
     catalog: Vec<String>,
     content: Vec<String>,
-    not_intersted: Vec<String>,
+    not_interested: Vec<String>,
     unknown: Vec<String>,
 }
 
@@ -25,7 +25,7 @@ struct Counts {
     product: usize,
     catalog: usize,
     content: usize,
-    not_intersted: usize,
+    not_interested: usize,
     unknown: usize,
 }
 
@@ -70,13 +70,13 @@ fn main() {
         match detect_file(source, code, &out_dir) {
             Ok((out_path, counts)) => {
                 println!(
-                    "ok   {} -> {} (product {}, catalog {}, content {}, not_intersted {}, unknown {})",
+                    "ok   {} -> {} (product {}, catalog {}, content {}, not_interested {}, unknown {})",
                     source.display(),
                     out_path.display(),
                     counts.product,
                     counts.catalog,
                     counts.content,
-                    counts.not_intersted,
+                    counts.not_interested,
                     counts.unknown,
                 );
                 succeeded += 1;
@@ -121,7 +121,7 @@ fn detect_file(source: &Path, code: RetailerCode, out_dir: &Path) -> Result<(Pat
             LinkKind::Product => links.product.push(url.location.clone()),
             LinkKind::Catalog => links.catalog.push(url.location.clone()),
             LinkKind::Content => links.content.push(url.location.clone()),
-            LinkKind::NotInterested => links.not_intersted.push(url.location.clone()),
+            LinkKind::NotInterested => links.not_interested.push(url.location.clone()),
             LinkKind::Unknown => links.unknown.push(url.location.clone()),
         }
     }
@@ -131,14 +131,14 @@ fn detect_file(source: &Path, code: RetailerCode, out_dir: &Path) -> Result<(Pat
     dedup(&mut links.product);
     dedup(&mut links.catalog);
     dedup(&mut links.content);
-    dedup(&mut links.not_intersted);
+    dedup(&mut links.not_interested);
     dedup(&mut links.unknown);
 
     let counts = Counts {
         product: links.product.len(),
         catalog: links.catalog.len(),
         content: links.content.len(),
-        not_intersted: links.not_intersted.len(),
+        not_interested: links.not_interested.len(),
         unknown: links.unknown.len(),
     };
 

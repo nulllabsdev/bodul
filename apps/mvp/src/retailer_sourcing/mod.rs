@@ -11,13 +11,13 @@ use shared::SitemapConfig;
 use shared::link::LinkKind;
 use shared::retailer::RetailerCode;
 
-mod model;
+pub mod model;
 pub mod retailers;
 
 /// Resolves a retailer's sitemap configuration.
 ///
 /// Retailers without known sitemap URLs return a config with an empty URL list.
-pub fn sitemap_config(code: RetailerCode) -> Option<SitemapConfig> {
+pub fn sitemap_config(code: &RetailerCode) -> Option<SitemapConfig> {
     let config = match code {
         RetailerCode::MinisForumEu => minisforum_eu::sitemap_config(),
         RetailerCode::MinisForumUs => minisforum_us::sitemap_config(),
