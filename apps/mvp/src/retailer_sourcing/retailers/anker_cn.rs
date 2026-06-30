@@ -1,0 +1,13 @@
+use super::anker_from_location;
+use shared::SitemapConfig;
+use shared::link::LinkKind;
+
+pub fn sitemap_config() -> SitemapConfig {
+    SitemapConfig {
+        sitemap_url: vec!["https://www.anker.com.cn/sitemap.xml".to_string()],
+    }
+}
+
+pub fn from_location(url: &str) -> LinkKind {
+    anker_from_location(url)
+}
