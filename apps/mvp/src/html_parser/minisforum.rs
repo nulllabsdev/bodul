@@ -110,11 +110,7 @@ fn tt_product() -> Structure {
 
 /// `<script id="xcotton_pp_variants">` — the full Shopify product object.
 fn xcotton_script() -> Structure {
-    json(
-        r#"script#xcotton_pp_variants"#,
-        "xcotton_pp_variants",
-        product_paths(),
-    )
+    json(r#"script#xcotton_pp_variants"#, "xcotton_pp_variants", product_paths())
 }
 
 /// The same full product object as a `var __xcotton_pp_variants__ = {...}` JS
@@ -312,11 +308,7 @@ fn main_product() -> Structure {
                         "div.product-gallery__media",
                         "media",
                         vec![
-                            particle(
-                                "div.product-gallery__media",
-                                "",
-                                vec![("data-media-id", "")],
-                            ),
+                            particle("div.product-gallery__media", "", vec![("data-media-id", "")]),
                             particle(
                                 "img",
                                 "",
@@ -347,11 +339,7 @@ fn main_product() -> Structure {
                         // The currently selected value.
                         particle("variant-option-value", "selected", vec![("", "value")]),
                         // Every selectable choice (the radio inputs carry the value).
-                        collection(
-                            "input",
-                            "values",
-                            vec![particle("", "", vec![("value", "value")])],
-                        ),
+                        collection("input", "values", vec![particle("", "", vec![("value", "value")])]),
                     ],
                 )],
             ),

@@ -84,8 +84,8 @@ pub fn parse(xml: &str) -> Result<Parsed, String> {
                 b"sitemap" => child = Some(ChildBuilder::default()),
                 b"url" => url = Some(UrlBuilder::default()),
                 b"image:image" => image = Some(ImageBuilder::default()),
-                b"loc" | b"lastmod" | b"changefreq" | b"priority" | b"image:loc"
-                | b"image:title" | b"image:caption" => {
+                b"loc" | b"lastmod" | b"changefreq" | b"priority" | b"image:loc" | b"image:title"
+                | b"image:caption" => {
                     leaf = Some(event.name().as_ref().to_vec());
                     text.clear();
                 }
@@ -147,9 +147,7 @@ pub fn parse(xml: &str) -> Result<Parsed, String> {
     match mode {
         Some(Mode::Index) => Ok(Parsed::Index(children)),
         Some(Mode::UrlSet) => Ok(Parsed::UrlSet(urls)),
-        None => {
-            Err("unrecognized sitemap document (no <sitemapindex> or <urlset> root)".to_string())
-        }
+        None => Err("unrecognized sitemap document (no <sitemapindex> or <urlset> root)".to_string()),
     }
 }
 
@@ -209,10 +207,7 @@ fn assign(
 /// `&#x26;`) via quick-xml, plus the five predefined named entities. Unknown
 /// names yield `None` and are dropped (sitemaps only use these).
 fn resolve_entity(reference: &BytesRef) -> Result<Option<char>, String> {
-    if let Some(character) = reference
-        .resolve_char_ref()
-        .map_err(|error| error.to_string())?
-    {
+    if let Some(character) = reference.resolve_char_ref().map_err(|error| error.to_string())? {
         return Ok(Some(character));
     }
     let name = reference.decode().map_err(|error| error.to_string())?;
@@ -260,10 +255,7 @@ mod tests {
         match parse(xml).expect("parses") {
             Parsed::Index(children) => {
                 assert_eq!(children.len(), 2);
-                assert_eq!(
-                    children[0].location,
-                    "https://minisforumpc.eu/sitemap_products_1.xml"
-                );
+                assert_eq!(children[0].location, "https://minisforumpc.eu/sitemap_products_1.xml");
                 assert!(children[0].last_modified.is_some());
                 assert!(children[1].last_modified.is_none());
             }
@@ -295,10 +287,7 @@ mod tests {
                 assert_eq!(entry.change_frequency, Some(ChangeFrequency::Daily));
                 assert_eq!(entry.priority, Some(0.8));
                 assert_eq!(entry.images.len(), 1);
-                assert_eq!(
-                    entry.images[0].location,
-                    "https://minisforumpc.eu/img/um890.jpg"
-                );
+                assert_eq!(entry.images[0].location, "https://minisforumpc.eu/img/um890.jpg");
                 assert_eq!(entry.images[0].title.as_deref(), Some("UM890 Pro"));
             }
             other => panic!("expected urlset, got {other:?}"),

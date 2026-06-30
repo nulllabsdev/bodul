@@ -79,13 +79,9 @@ fn destructure_file(
     let destructured = html_parser::destructure(&html, retailer);
     let json = serde_json::to_string_pretty(&destructured).map_err(|error| error.to_string())?;
 
-    let stem = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("page");
+    let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("page");
     let out_path = output_dir.join(format!("{stem}.json"));
-    fs::write(&out_path, json)
-        .map_err(|error| format!("writing {}: {error}", out_path.display()))?;
+    fs::write(&out_path, json).map_err(|error| format!("writing {}: {error}", out_path.display()))?;
 
     Ok(out_path)
 }

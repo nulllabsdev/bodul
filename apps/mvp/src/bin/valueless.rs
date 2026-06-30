@@ -87,20 +87,13 @@ fn valueless_file(
     retailer: RetailerCode,
 ) -> Result<PathBuf, String> {
     let html = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let file_name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("page.html");
-    let stem = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("page");
+    let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or("page.html");
+    let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("page");
 
     let blanked = html_parser::valueless(&html, retailer).map_err(|error| error.to_string())?;
 
     let out_path = output_dir.join(file_name);
-    fs::write(&out_path, blanked.page)
-        .map_err(|error| format!("writing {}: {error}", out_path.display()))?;
+    fs::write(&out_path, blanked.page).map_err(|error| format!("writing {}: {error}", out_path.display()))?;
 
     for (section, section_html) in blanked.sections {
         write_into(&sections_dir.join(&section), file_name, &section_html)?;

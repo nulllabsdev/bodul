@@ -47,11 +47,7 @@ impl Money {
     /// Phase 1 delivers positive baseline parsing (AC-P baseline rows, AC-P-AMB,
     /// AC-P-NEG, AC-P-ZERO-3/4); negative amounts and rounding-enabled parsing are
     /// Phase 2.
-    pub fn parse(
-        raw: &str,
-        currency: Currency,
-        options: ParseOptions,
-    ) -> Result<Money, ParseError> {
+    pub fn parse(raw: &str, currency: Currency, options: ParseOptions) -> Result<Money, ParseError> {
         // TODO(phase-1): implement the §2.4 parsing algorithm.
         let _ = (raw, currency, options);
         todo!("Money::parse — TS001 §2.4")

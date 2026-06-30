@@ -31,10 +31,7 @@ fn main() {
 
         match fetch_and_dump(retailer, &data_dir, &timestamp) {
             Ok((path, bytes)) => {
-                println!(
-                    "ok   {retailer:?}: wrote {} ({bytes} bytes)",
-                    path.display()
-                );
+                println!("ok   {retailer:?}: wrote {} ({bytes} bytes)", path.display());
                 succeeded += 1;
             }
             Err(error) => {
@@ -51,18 +48,12 @@ fn main() {
 }
 
 /// Fetches one retailer's sitemap and writes it; returns the path and byte size.
-fn fetch_and_dump(
-    retailer: RetailerCode,
-    data_dir: &Path,
-    timestamp: &str,
-) -> Result<(PathBuf, usize), String> {
+fn fetch_and_dump(retailer: RetailerCode, data_dir: &Path, timestamp: &str) -> Result<(PathBuf, usize), String> {
     let document = sitemap_discovery::fetch_sitemap(retailer).map_err(|error| error.to_string())?;
     let json = serde_json::to_string_pretty(&document).map_err(|error| error.to_string())?;
 
     let slug = format!("{retailer:?}").to_lowercase();
-    let path = data_dir.join(format!(
-        "processed-sitemaps/{slug}-sitemap-{timestamp}.json"
-    ));
+    let path = data_dir.join(format!("processed-sitemaps/{slug}-sitemap-{timestamp}.json"));
     fs::write(&path, &json).map_err(|error| format!("writing {}: {error}", path.display()))?;
 
     Ok((path, json.len()))

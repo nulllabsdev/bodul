@@ -27,8 +27,8 @@ use chrono::NaiveDate;
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumRuAvailability, MinisForumRuDestructuredProduct, MinisForumRuMeta,
-    MinisForumRuMetaVariant, MinisForumRuOffer, MinisForumRuProductVariant,
+    MinisForumRuAvailability, MinisForumRuDestructuredProduct, MinisForumRuMeta, MinisForumRuMetaVariant,
+    MinisForumRuOffer, MinisForumRuProductVariant,
 };
 
 /// A processed MinisForum RU product.
@@ -206,16 +206,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -225,19 +220,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -310,10 +300,7 @@ impl TryFrom<MinisForumRuDestructuredProduct> for MinisForumRuProcessedProduct {
             &destructured.product_variants,
         )?;
 
-        let title = destructured
-            .motion_main
-            .as_ref()
-            .and_then(|main| main.title.clone());
+        let title = destructured.motion_main.as_ref().and_then(|main| main.title.clone());
 
         let images = destructured
             .motion_main
@@ -322,8 +309,7 @@ impl TryFrom<MinisForumRuDestructuredProduct> for MinisForumRuProcessedProduct {
 
         Ok(Self {
             locale: MinisForumRuLocale::from_string(&destructured.locale)?,
-            product: MinisForumRuProcessedProductInfo::try_from(destructured.meta)?
-                .with_title(title),
+            product: MinisForumRuProcessedProductInfo::try_from(destructured.meta)?.with_title(title),
             images,
             variants,
         })
@@ -406,9 +392,7 @@ fn make_variant(
     if let (Some(meta_sku), Some(offer_sku)) = (&meta.sku, &offer.sku)
         && meta_sku != offer_sku
     {
-        return Err(format!(
-            "variant sku mismatch: meta={meta_sku:?}, offer={offer_sku:?}"
-        ));
+        return Err(format!("variant sku mismatch: meta={meta_sku:?}, offer={offer_sku:?}"));
     }
 
     let offer_currency = currency_from_code(&offer.currency)?;
@@ -431,12 +415,12 @@ fn make_variant(
         price: meta_price,
         availability: Some(offer.availability.into()),
         title: meta.title,
-        price_valid_until: Some(offer.price_valid_until.parse().map_err(|error| {
-            format!(
-                "invalid price_valid_until {:?}: {error}",
-                offer.price_valid_until
-            )
-        })?),
+        price_valid_until: Some(
+            offer
+                .price_valid_until
+                .parse()
+                .map_err(|error| format!("invalid price_valid_until {:?}: {error}", offer.price_valid_until))?,
+        ),
         meta_variant_id: meta.variant_id,
         option1,
         option2,
@@ -448,12 +432,7 @@ fn make_variant(
 /// Extracts option/compare-at values from a `product_variants` textarea entry.
 fn extract_options(
     pv: Option<&MinisForumRuProductVariant>,
-) -> (
-    Option<String>,
-    Option<String>,
-    Option<String>,
-    Option<Money>,
-) {
+) -> (Option<String>, Option<String>, Option<String>, Option<Money>) {
     let Some(pv) = pv else {
         return (None, None, None, None);
     };
@@ -462,10 +441,5 @@ fn extract_options(
         .as_deref()
         .and_then(|price| parse_cents(price).ok())
         .map(|cents| Money::new(cents, Currency::USD));
-    (
-        pv.option1.clone(),
-        pv.option2.clone(),
-        pv.option3.clone(),
-        cat,
-    )
+    (pv.option1.clone(), pv.option2.clone(), pv.option3.clone(), cat)
 }
