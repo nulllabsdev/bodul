@@ -49,16 +49,8 @@ pub fn architecture() -> RetailerArchitecture {
                 "variant-radios fieldset.product-form__controls",
                 "options",
                 vec![
-                    particle(
-                        "legend.product-form__group-name",
-                        "label",
-                        vec![("", "value")],
-                    ),
-                    collection(
-                        "input",
-                        "values",
-                        vec![particle("", "", vec![("value", "value")])],
-                    ),
+                    particle("legend.product-form__group-name", "label", vec![("", "value")]),
+                    collection("input", "values", vec![particle("", "", vec![("value", "value")])]),
                 ],
             ),
         ],

@@ -24,8 +24,8 @@ use chrono::NaiveDate;
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumHkAvailability, MinisForumHkBmVariant, MinisForumHkDestructuredProduct,
-    MinisForumHkMeta, MinisForumHkMetaVariant, MinisForumHkOffer, MinisForumHkSchema,
+    MinisForumHkAvailability, MinisForumHkBmVariant, MinisForumHkDestructuredProduct, MinisForumHkMeta,
+    MinisForumHkMetaVariant, MinisForumHkOffer, MinisForumHkSchema,
 };
 
 /// A processed MinisForum HK product.
@@ -191,16 +191,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -210,19 +205,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -393,11 +383,10 @@ fn make_variants(
             .find(|offer| offer.sku == meta.sku)
             .cloned()
             .ok_or_else(|| format!("no offer for sku {:?}", meta.sku))?;
-        let bmv = meta.sku.as_deref().and_then(|sku| {
-            bm_product_variants
-                .iter()
-                .find(|bmv| bmv.sku.as_deref() == Some(sku))
-        });
+        let bmv = meta
+            .sku
+            .as_deref()
+            .and_then(|sku| bm_product_variants.iter().find(|bmv| bmv.sku.as_deref() == Some(sku)));
         combined.push(make_variant(meta, offer, bmv)?);
     }
 
@@ -437,9 +426,7 @@ fn make_variant(
         && !meta_title.is_empty()
         && meta_title != &title
     {
-        return Err(format!(
-            "variant title mismatch: meta={meta_title:?}, offer={title:?}"
-        ));
+        return Err(format!("variant title mismatch: meta={meta_title:?}, offer={title:?}"));
     }
 
     let (option1, option2, option3, compare_at_price) = match bmv {
@@ -450,12 +437,7 @@ fn make_variant(
                 .map(parse_cents)
                 .transpose()?
                 .map(|cents| Money::new(cents, Currency::HKD));
-            (
-                bmv.option1.clone(),
-                bmv.option2.clone(),
-                bmv.option3.clone(),
-                cat,
-            )
+            (bmv.option1.clone(), bmv.option2.clone(), bmv.option3.clone(), cat)
         }
         None => (None, None, None, None),
     };
@@ -465,12 +447,10 @@ fn make_variant(
         price: meta_price,
         availability: offer.availability.into(),
         title,
-        price_valid_until: offer.price_valid_until.parse().map_err(|error| {
-            format!(
-                "invalid price_valid_until {:?}: {error}",
-                offer.price_valid_until
-            )
-        })?,
+        price_valid_until: offer
+            .price_valid_until
+            .parse()
+            .map_err(|error| format!("invalid price_valid_until {:?}: {error}", offer.price_valid_until))?,
         meta_variant_id: meta.variant_id,
         option1,
         option2,

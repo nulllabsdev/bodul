@@ -219,11 +219,7 @@ mod tests {
 
     #[test]
     fn builds_a_definition_tree() {
-        let reviews = collection(
-            "li.review",
-            "reviews",
-            vec![particle("p", "body", vec![("", "value")])],
-        );
+        let reviews = collection("li.review", "reviews", vec![particle("p", "body", vec![("", "value")])]);
         let Structure::Collection(reviews) = reviews else {
             panic!("collection() should build a Collection");
         };
@@ -235,8 +231,7 @@ mod tests {
     #[test]
     fn particle_maps_attr_tuples() {
         // An empty key denotes the element's text content.
-        let Structure::Particle(link) = particle("a", "link", vec![("href", "url"), ("", "label")])
-        else {
+        let Structure::Particle(link) = particle("a", "link", vec![("href", "url"), ("", "label")]) else {
             panic!("particle() should build a Particle");
         };
         assert_eq!(link.attrs.len(), 2);
@@ -248,11 +243,9 @@ mod tests {
 
     #[test]
     fn segment_scopes_subs() {
-        let Structure::Segment(head) = segment(
-            "head",
-            "product",
-            vec![particle("title", "title", vec![("", "value")])],
-        ) else {
+        let Structure::Segment(head) =
+            segment("head", "product", vec![particle("title", "title", vec![("", "value")])])
+        else {
             panic!("segment() should build a Segment");
         };
         assert_eq!(head.name, "product");

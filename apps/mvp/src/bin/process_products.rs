@@ -13,8 +13,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use mvp::offer_processing::{
-    minisforum_au, minisforum_ca, minisforum_eu, minisforum_fr, minisforum_hk, minisforum_jp,
-    minisforum_kr, minisforum_ru, minisforum_uk, minisforum_us,
+    minisforum_au, minisforum_ca, minisforum_eu, minisforum_fr, minisforum_hk, minisforum_jp, minisforum_kr,
+    minisforum_ru, minisforum_uk, minisforum_us,
 };
 
 fn main() {
@@ -84,10 +84,10 @@ fn main() {
 /// processed model, and returns the pretty JSON. Errors carry `path` context.
 macro_rules! process_typed {
     ($raw:expr, $path:expr, $dest:ty, $proc:ty) => {{
-        let destructured: $dest = serde_json::from_str($raw)
-            .map_err(|error| format!("parsing {}: {error}", $path.display()))?;
-        let processed = <$proc>::try_from(destructured)
-            .map_err(|error| format!("processing {}: {error}", $path.display()))?;
+        let destructured: $dest =
+            serde_json::from_str($raw).map_err(|error| format!("parsing {}: {error}", $path.display()))?;
+        let processed =
+            <$proc>::try_from(destructured).map_err(|error| format!("processing {}: {error}", $path.display()))?;
         serde_json::to_string_pretty(&processed).map_err(|error| error.to_string())?
     }};
 }
@@ -159,16 +159,15 @@ fn process_file(path: &Path, output_dir: &Path, retailer: &str) -> Result<PathBu
             minisforum_us::MinisForumUsProcessedProduct
         ),
         _ => {
-            let value: serde_json::Value = serde_json::from_str(&raw)
-                .map_err(|error| format!("parsing {}: {error}", path.display()))?;
+            let value: serde_json::Value =
+                serde_json::from_str(&raw).map_err(|error| format!("parsing {}: {error}", path.display()))?;
             serde_json::to_string_pretty(&value).map_err(|error| error.to_string())?
         }
     };
 
     let file_name = path.file_name().unwrap_or_else(|| "page.json".as_ref());
     let out_path = output_dir.join(file_name);
-    fs::write(&out_path, json)
-        .map_err(|error| format!("writing {}: {error}", out_path.display()))?;
+    fs::write(&out_path, json).map_err(|error| format!("writing {}: {error}", out_path.display()))?;
 
     Ok(out_path)
 }

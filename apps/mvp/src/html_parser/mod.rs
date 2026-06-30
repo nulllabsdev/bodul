@@ -29,8 +29,8 @@ mod minisforum_us;
 mod structure;
 
 pub use structure::{
-    Attribute, Collection, Json, Particle, RetailerArchitecture, Scrub, Segment, Structure, Trash,
-    collection, json, json_after, particle, scrub, segment, trash,
+    Attribute, Collection, Json, Particle, RetailerArchitecture, Scrub, Segment, Structure, Trash, collection, json,
+    json_after, particle, scrub, segment, trash,
 };
 
 /// The page architecture for `retailer`.
@@ -88,11 +88,7 @@ pub fn valueless(html: &str, retailer: RetailerCode) -> Result<Valueless, std::i
 
     let mut components = Vec::new();
     for component in lifted {
-        components.push((
-            component.name,
-            component.index,
-            serialize_node(&component.node)?,
-        ));
+        components.push((component.name, component.index, serialize_node(&component.node)?));
     }
 
     Ok(Valueless {

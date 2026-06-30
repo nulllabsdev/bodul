@@ -27,10 +27,7 @@ impl Money {
     /// Infallible: every `i64` paired with a supported currency is a valid
     /// `Money` (TS001 §2.9).
     pub fn new(amount_minor: i64, currency: Currency) -> Money {
-        Money {
-            amount_minor,
-            currency,
-        }
+        Money { amount_minor, currency }
     }
 
     /// Combine whole major units and a signed fractional minor-unit component
@@ -40,11 +37,7 @@ impl Money {
     /// and `fractional_minor` must share a sign unless either is zero; otherwise
     /// returns [`MoneyError::InvalidArgument`]. Overflow-checked. (TS001 §2.9;
     /// AC-A-18, AC-A-19.)
-    pub fn from_major(
-        units: i64,
-        fractional_minor: i64,
-        currency: Currency,
-    ) -> Result<Money, MoneyError> {
+    pub fn from_major(units: i64, fractional_minor: i64, currency: Currency) -> Result<Money, MoneyError> {
         // TODO(phase-1): validate sign/magnitude, assemble minor units (overflow-checked).
         let _ = (units, fractional_minor, currency);
         todo!("Money::from_major — TS001 §2.9")

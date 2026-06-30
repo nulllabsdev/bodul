@@ -25,7 +25,8 @@ impl std::error::Error for FetchError {}
 /// A browser-like User-Agent. Many storefronts reject the default `reqwest/x.y`
 /// agent with `403 Forbidden`; sending a common one is enough for basic fetching.
 /// (Rotating agents / proxies for anti-scraping is deferred — roadmap Stage D.)
-const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const USER_AGENT: &str =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 /// A minimal blocking HTTP client for fetching retailer resources.
 pub struct Client {}

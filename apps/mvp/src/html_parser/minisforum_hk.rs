@@ -46,11 +46,7 @@ pub fn architecture() -> RetailerArchitecture {
             segment(
                 "product-meta",
                 "price",
-                vec![particle(
-                    ".price.price--large",
-                    "sale_price",
-                    vec![("", "value")],
-                )],
+                vec![particle(".price.price--large", "sale_price", vec![("", "value")])],
             ),
             segment(
                 "product-media",
@@ -66,16 +62,8 @@ pub fn architecture() -> RetailerArchitecture {
                 "options",
                 vec![
                     particle(".product-form__option-name", "label", vec![("", "value")]),
-                    particle(
-                        ".product-form__option-value",
-                        "selected",
-                        vec![("", "value")],
-                    ),
-                    collection(
-                        "input",
-                        "values",
-                        vec![particle("", "", vec![("value", "value")])],
-                    ),
+                    particle(".product-form__option-value", "selected", vec![("", "value")]),
+                    collection("input", "values", vec![particle("", "", vec![("value", "value")])]),
                 ],
             ),
         ],

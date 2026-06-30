@@ -111,14 +111,9 @@ fn retailer_for(path: &Path) -> Option<RetailerCode> {
 
 /// Reads one sitemap dump, classifies its links with `code`'s retailer-specific
 /// rules, and writes the grouped result.
-fn detect_file(
-    source: &Path,
-    code: RetailerCode,
-    out_dir: &Path,
-) -> Result<(PathBuf, Counts), String> {
+fn detect_file(source: &Path, code: RetailerCode, out_dir: &Path) -> Result<(PathBuf, Counts), String> {
     let json = fs::read_to_string(source).map_err(|error| error.to_string())?;
-    let document: SitemapDocument =
-        serde_json::from_str(&json).map_err(|error| error.to_string())?;
+    let document: SitemapDocument = serde_json::from_str(&json).map_err(|error| error.to_string())?;
 
     let mut links = Group::default();
     for url in document.all_urls("main") {
@@ -147,10 +142,7 @@ fn detect_file(
         unknown: links.unknown.len(),
     };
 
-    let stem = source
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("sitemap");
+    let stem = source.file_stem().and_then(|stem| stem.to_str()).unwrap_or("sitemap");
     let out_path = out_dir.join(format!("{stem}-detected.json"));
 
     let detection = Detection {
@@ -159,8 +151,7 @@ fn detect_file(
         links,
     };
     let out = serde_json::to_string_pretty(&detection).map_err(|error| error.to_string())?;
-    fs::write(&out_path, &out)
-        .map_err(|error| format!("writing {}: {error}", out_path.display()))?;
+    fs::write(&out_path, &out).map_err(|error| format!("writing {}: {error}", out_path.display()))?;
 
     Ok((out_path, counts))
 }
@@ -168,10 +159,7 @@ fn detect_file(
 /// All sitemap dump files directly under `dir` (skipping any `-detected` output).
 fn sitemap_dumps(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut dumps = Vec::new();
-    for entry in fs::read_dir(dir)
-        .map_err(|error| error.to_string())?
-        .flatten()
-    {
+    for entry in fs::read_dir(dir).map_err(|error| error.to_string())?.flatten() {
         let path = entry.path();
         if !path.is_file() {
             continue;

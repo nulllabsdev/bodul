@@ -32,8 +32,8 @@ use chrono::NaiveDate;
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumJpAvailability, MinisForumJpDestructuredProduct, MinisForumJpFeature,
-    MinisForumJpMetaVariant, MinisForumJpOffer, MinisForumJpProductVariant, MinisForumJpSchema,
+    MinisForumJpAvailability, MinisForumJpDestructuredProduct, MinisForumJpFeature, MinisForumJpMetaVariant,
+    MinisForumJpOffer, MinisForumJpProductVariant, MinisForumJpSchema,
 };
 
 /// A processed MinisForum JP product.
@@ -84,9 +84,7 @@ fn collapse_after_colon(text: &str) -> String {
     let mut chars = text.chars().peekable();
     while let Some(current) = chars.next() {
         out.push(current);
-        if (current == ':' || current == '：')
-            && chars.peek().is_some_and(|next| next.is_whitespace())
-        {
+        if (current == ':' || current == '：') && chars.peek().is_some_and(|next| next.is_whitespace()) {
             while chars.peek().is_some_and(|next| next.is_whitespace()) {
                 chars.next();
             }
@@ -252,16 +250,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -271,19 +264,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -335,9 +323,7 @@ impl MinisForumJpProductType {
             "Mini PC" => Ok(MinisForumJpProductType::MiniPc),
             "Refurbished Mini PC" => Ok(MinisForumJpProductType::RefurbishedMiniPc),
             "Mini WorkStation" => Ok(MinisForumJpProductType::MiniWorkStation),
-            "Refurbished Mini WorkStation" => {
-                Ok(MinisForumJpProductType::RefurbishedMiniWorkStation)
-            }
+            "Refurbished Mini WorkStation" => Ok(MinisForumJpProductType::RefurbishedMiniWorkStation),
             "Game PC" => Ok(MinisForumJpProductType::GamePc),
             "motherboard" => Ok(MinisForumJpProductType::Motherboard),
             "eGPU Dock" => Ok(MinisForumJpProductType::EgpuDock),
@@ -416,10 +402,7 @@ impl TryFrom<MinisForumJpDestructuredProduct> for MinisForumJpProcessedProduct {
             .cloned()
             .ok_or_else(|| "missing product schema with an offer".to_string())?;
 
-        let title = destructured
-            .main_product
-            .as_ref()
-            .map(|main| main.title.clone());
+        let title = destructured.main_product.as_ref().map(|main| main.title.clone());
 
         let product = make_product_info(&destructured.meta, &product_schema, title)?;
 
@@ -439,14 +422,7 @@ impl TryFrom<MinisForumJpDestructuredProduct> for MinisForumJpProcessedProduct {
                 .unwrap_or_default(),
             features: destructured
                 .feature_chart
-                .map(|chart| {
-                    chart
-                        .features
-                        .into_iter()
-                        .flatten()
-                        .map(Into::into)
-                        .collect()
-                })
+                .map(|chart| chart.features.into_iter().flatten().map(Into::into).collect())
                 .unwrap_or_default(),
             variants,
         })
@@ -510,11 +486,10 @@ fn make_variants(
                 _ => false,
             };
             // Find the matching product_variant by SKU for option enrichment.
-            let pv = meta.sku.as_deref().and_then(|sku| {
-                product_variants
-                    .iter()
-                    .find(|pv| pv.sku.as_deref() == Some(sku))
-            });
+            let pv = meta
+                .sku
+                .as_deref()
+                .and_then(|sku| product_variants.iter().find(|pv| pv.sku.as_deref() == Some(sku)));
             make_variant(meta, if carries_offer { offer } else { None }, pv)
         })
         .collect()
@@ -561,12 +536,7 @@ fn make_variant(
                 .map(parse_cents)
                 .transpose()?
                 .map(|cents| Money::new(cents, Currency::JPY));
-            (
-                pv.option1.clone(),
-                pv.option2.clone(),
-                pv.option3.clone(),
-                cat,
-            )
+            (pv.option1.clone(), pv.option2.clone(), pv.option3.clone(), cat)
         }
         None => (None, None, None, None),
     };

@@ -74,10 +74,7 @@ fn main() {
             continue;
         }
 
-        println!(
-            "{retailer}: {} product links",
-            detection.links.product.len()
-        );
+        println!("{retailer}: {} product links", detection.links.product.len());
 
         let sample = detection.links.product;
 
@@ -136,10 +133,7 @@ fn main() {
 /// All detection JSON files directly under `dir`.
 fn detection_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
     let mut files = Vec::new();
-    for entry in fs::read_dir(dir)
-        .map_err(|error| error.to_string())?
-        .flatten()
-    {
+    for entry in fs::read_dir(dir).map_err(|error| error.to_string())?.flatten() {
         let path = entry.path();
         if path.is_file() && path.extension().is_some_and(|ext| ext == "json") {
             files.push(path);
@@ -152,10 +146,7 @@ fn detection_files(dir: &Path) -> Result<Vec<PathBuf>, String> {
 /// `-sitemap`, mapped back to its `RetailerCode` name (e.g. `MinisForumEu`),
 /// falling back to the raw slug if it matches no known code.
 fn retailer_dir(source: &Path) -> String {
-    let name = source
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("");
+    let name = source.file_name().and_then(|name| name.to_str()).unwrap_or("");
     let slug = name.split("-sitemap").next().unwrap_or("");
     RetailerCode::ALL
         .iter()

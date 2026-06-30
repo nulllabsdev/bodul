@@ -49,10 +49,7 @@ fn row_values(row: &Value) -> Option<&Vec<Value>> {
 /// label or no value in that column.
 fn cell(row: &Value, column: usize) -> Option<Value> {
     let label = row.get("label").and_then(Value::as_str)?;
-    let value = row_values(row)?
-        .get(column)?
-        .get("value")
-        .and_then(Value::as_str)?;
+    let value = row_values(row)?.get(column)?.get("value").and_then(Value::as_str)?;
     Some(json!({ "label": label, "value": value }))
 }
 

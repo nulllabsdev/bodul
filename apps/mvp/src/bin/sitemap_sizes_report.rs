@@ -295,8 +295,12 @@ fn main() {
 
     // Grouped per retailer
     md.push_str("## Grouped Sitemap Contents\n\n");
-    md.push_str("| Retailer | Retrievals | Min KB | Avg KB | Max KB | Products | Catalogs | Content | Skipped | Unknown |\n");
-    md.push_str("| -------- | ---------: | ------: | ------: | ------: | -------: | -------: | ------: | ------: | ------: |\n");
+    md.push_str(
+        "| Retailer | Retrievals | Min KB | Avg KB | Max KB | Products | Catalogs | Content | Skipped | Unknown |\n",
+    );
+    md.push_str(
+        "| -------- | ---------: | ------: | ------: | ------: | -------: | -------: | ------: | ------: | ------: |\n",
+    );
     for row in &grouped_rows {
         md.push_str(&format!(
             "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |\n",

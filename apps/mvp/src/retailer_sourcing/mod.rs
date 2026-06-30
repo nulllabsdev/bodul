@@ -4,8 +4,8 @@
 //! pipeline (roadmap Stage A). Triggered manually in Phase 0.
 
 use crate::retailer_sourcing::retailers::{
-    minisforum_au, minisforum_ca, minisforum_eu, minisforum_fr, minisforum_hk, minisforum_jp,
-    minisforum_kr, minisforum_ru, minisforum_uk, minisforum_us,
+    minisforum_au, minisforum_ca, minisforum_eu, minisforum_fr, minisforum_hk, minisforum_jp, minisforum_kr,
+    minisforum_ru, minisforum_uk, minisforum_us,
 };
 use shared::SitemapConfig;
 use shared::link::LinkKind;
@@ -43,12 +43,7 @@ pub fn sitemap_config(code: RetailerCode) -> Option<SitemapConfig> {
 /// Each retailer's rule lives alongside its `sitemap_config` (a `from_location`
 /// fn in its module). Retailers without a rule yet fall through to
 /// [`LinkKind::Unknown`].
-pub fn classify_link(
-    code: RetailerCode,
-    url: &str,
-    _source: &str,
-    _image_count: usize,
-) -> LinkKind {
+pub fn classify_link(code: RetailerCode, url: &str, _source: &str, _image_count: usize) -> LinkKind {
     match code {
         RetailerCode::MinisForumEu => minisforum_eu::from_location(url),
         RetailerCode::MinisForumUs => minisforum_us::from_location(url),
