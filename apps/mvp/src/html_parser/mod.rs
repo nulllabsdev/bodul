@@ -49,7 +49,6 @@ pub fn architecture_for(retailer: RetailerCode) -> RetailerArchitecture {
         RetailerCode::MinisForumJp => minisforum_jp::architecture(),
         RetailerCode::MinisForumRu => minisforum_ru::architecture(),
         RetailerCode::MinisForumHk => minisforum_hk::architecture(),
-        _ => RetailerArchitecture::default(),
     }
 }
 
