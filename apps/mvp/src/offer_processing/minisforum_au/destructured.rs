@@ -305,17 +305,10 @@ mod tests {
     #[test]
     fn availability_round_trips() {
         for (url, variant) in [
-            (
-                "https://schema.org/InStock",
-                MinisForumAuAvailability::InStock,
-            ),
-            (
-                "https://schema.org/OutOfStock",
-                MinisForumAuAvailability::OutOfStock,
-            ),
+            ("https://schema.org/InStock", MinisForumAuAvailability::InStock),
+            ("https://schema.org/OutOfStock", MinisForumAuAvailability::OutOfStock),
         ] {
-            let from_url: MinisForumAuAvailability =
-                serde_json::from_str(&format!("\"{url}\"")).unwrap();
+            let from_url: MinisForumAuAvailability = serde_json::from_str(&format!("\"{url}\"")).unwrap();
             assert_eq!(from_url, variant);
 
             let serialized = serde_json::to_string(&from_url).unwrap();
@@ -330,17 +323,14 @@ mod tests {
     fn deserializes_every_au_page() {
         let dir = std::path::Path::new("data/pages-destructed/MinisForumAu");
         let mut count = 0;
-        for entry in std::fs::read_dir(dir)
-            .expect("AU destructed dir exists")
-            .flatten()
-        {
+        for entry in std::fs::read_dir(dir).expect("AU destructed dir exists").flatten() {
             let path = entry.path();
             if path.extension().is_none_or(|ext| ext != "json") {
                 continue;
             }
             let raw = std::fs::read_to_string(&path).expect("reads file");
-            let _product: MinisForumAuDestructuredProduct = serde_json::from_str(&raw)
-                .unwrap_or_else(|e| panic!("deserialize {}: {e}", path.display()));
+            let _product: MinisForumAuDestructuredProduct =
+                serde_json::from_str(&raw).unwrap_or_else(|e| panic!("deserialize {}: {e}", path.display()));
             count += 1;
         }
         assert!(count >= 32, "expected at least 32 AU pages, got {count}");

@@ -106,15 +106,11 @@ fn extract_one(context: &NodeRef, structure: &Structure) -> Vec<(String, Value)>
             // out of surrounding JavaScript.
             let blocks: Vec<Value> = if json.anchor.is_empty() {
                 matches
-                    .filter_map(|matched| {
-                        serde_json::from_str(&matched.as_node().text_contents()).ok()
-                    })
+                    .filter_map(|matched| serde_json::from_str(&matched.as_node().text_contents()).ok())
                     .collect()
             } else {
                 matches
-                    .filter_map(|matched| {
-                        json_after(&matched.as_node().text_contents(), &json.anchor)
-                    })
+                    .filter_map(|matched| json_after(&matched.as_node().text_contents(), &json.anchor))
                     .collect()
             };
 
@@ -125,9 +121,7 @@ fn extract_one(context: &NodeRef, structure: &Structure) -> Vec<(String, Value)>
                     .iter()
                     .filter_map(|block| block.as_array())
                     .flatten()
-                    .map(|element| {
-                        Value::Object(json_object(std::slice::from_ref(element), &json.paths))
-                    })
+                    .map(|element| Value::Object(json_object(std::slice::from_ref(element), &json.paths)))
                     .filter(|item| item.as_object().is_some_and(|fields| !fields.is_empty()))
                     .collect();
                 if items.is_empty() {
@@ -168,10 +162,7 @@ fn json_object(blocks: &[Value], paths: &[Attribute]) -> Map<String, Value> {
     }
 
     for (array_path, subs) in lists {
-        let Some(elements) = blocks
-            .iter()
-            .find_map(|block| resolve_array(block, &array_path))
-        else {
+        let Some(elements) = blocks.iter().find_map(|block| resolve_array(block, &array_path)) else {
             continue;
         };
         let items: Vec<Value> = elements
@@ -179,9 +170,7 @@ fn json_object(blocks: &[Value], paths: &[Attribute]) -> Map<String, Value> {
             .map(|element| {
                 let fields: Map<String, Value> = subs
                     .iter()
-                    .filter_map(|(name, sub_path)| {
-                        resolve(element, sub_path).map(|value| (name.clone(), value))
-                    })
+                    .filter_map(|(name, sub_path)| resolve(element, sub_path).map(|value| (name.clone(), value)))
                     .collect();
                 Value::Object(fields)
             })
@@ -270,10 +259,7 @@ fn select_one(context: &NodeRef, selector: &str) -> Option<NodeDataRef<ElementDa
 
 /// Reads each attribute from `matched`, dropping absent or empty values. An
 /// attribute keyed but unnamed is a valueless-only blank, so it is skipped here.
-fn read_attrs(
-    matched: &kuchiki::NodeDataRef<kuchiki::ElementData>,
-    attrs: &[Attribute],
-) -> Vec<(String, String)> {
+fn read_attrs(matched: &kuchiki::NodeDataRef<kuchiki::ElementData>, attrs: &[Attribute]) -> Vec<(String, String)> {
     attrs
         .iter()
         .filter(|attr| attr.key.is_empty() || !attr.name.is_empty())
@@ -299,9 +285,7 @@ mod tests {
     use serde_json::json;
 
     use super::extract;
-    use crate::html_parser::structure::{
-        RetailerArchitecture, collection, json, json_after, particle, segment, trash,
-    };
+    use crate::html_parser::structure::{RetailerArchitecture, collection, json, json_after, particle, segment, trash};
 
     #[test]
     fn extracts_segments_and_particles() {
@@ -309,11 +293,7 @@ mod tests {
             "head",
             "product",
             vec![
-                particle(
-                    r#"meta[property="og:title"]"#,
-                    "name",
-                    vec![("content", "value")],
-                ),
+                particle(r#"meta[property="og:title"]"#, "name", vec![("content", "value")]),
                 particle(
                     r#"meta[property="product:price:amount"]"#,
                     "price",
@@ -328,28 +308,19 @@ mod tests {
 
         let value = extract(&node, &architecture);
 
-        assert_eq!(
-            value,
-            json!({ "product": { "name": "Mouse Pad", "price": "15.99" } })
-        );
+        assert_eq!(value, json!({ "product": { "name": "Mouse Pad", "price": "15.99" } }));
     }
 
     #[test]
     fn emits_an_object_for_multi_attribute_particles() {
-        let architecture = RetailerArchitecture::new(vec![particle(
-            "a.more",
-            "link",
-            vec![("href", "url"), ("", "label")],
-        )]);
+        let architecture =
+            RetailerArchitecture::new(vec![particle("a.more", "link", vec![("href", "url"), ("", "label")])]);
         let html = r#"<html><body><a class="more" href="/p/1">Details</a></body></html>"#;
         let node = kuchiki::parse_html().one(html);
 
         let value = extract(&node, &architecture);
 
-        assert_eq!(
-            value,
-            json!({ "link": { "url": "/p/1", "label": "Details" } })
-        );
+        assert_eq!(value, json!({ "link": { "url": "/p/1", "label": "Details" } }));
     }
 
     #[test]
@@ -366,10 +337,7 @@ mod tests {
 
         let value = extract(&node, &architecture);
 
-        assert_eq!(
-            value,
-            json!({ "reviews": [{ "body": "Great" }, { "body": "Fast" }] })
-        );
+        assert_eq!(value, json!({ "reviews": [{ "body": "Great" }, { "body": "Fast" }] }));
     }
 
     #[test]
@@ -379,11 +347,7 @@ mod tests {
         let architecture = RetailerArchitecture::new(vec![collection(
             "meta",
             "metas",
-            vec![particle(
-                "",
-                "",
-                vec![("property", "name"), ("content", "value")],
-            )],
+            vec![particle("", "", vec![("property", "name"), ("content", "value")])],
         )]);
         let html = r#"<html><head>
             <meta property="og:title" content="Mouse Pad">
@@ -492,11 +456,7 @@ mod tests {
             "script",
             "productVariants =",
             "product_variants",
-            vec![
-                ("sku", "sku"),
-                ("available", "available"),
-                ("price", "price"),
-            ],
+            vec![("sku", "sku"), ("available", "available"), ("price", "price")],
         )]);
         let html = r#"<html><body><script>(function(){var x=1;
             const productVariants = [{"sku":"A","available":true,"price":97500},
@@ -527,10 +487,7 @@ mod tests {
 
         let value = extract(&node, &architecture);
 
-        assert_eq!(
-            value,
-            json!({ "schema": { "offers": [{ "price": "99.0" }] } })
-        );
+        assert_eq!(value, json!({ "schema": { "offers": [{ "price": "99.0" }] } }));
     }
 
     #[test]
@@ -569,8 +526,7 @@ mod tests {
 
     #[test]
     fn omits_structures_that_match_nothing() {
-        let architecture =
-            RetailerArchitecture::new(vec![particle("title", "title", vec![("", "value")])]);
+        let architecture = RetailerArchitecture::new(vec![particle("title", "title", vec![("", "value")])]);
         let html = r#"<html><head></head><body></body></html>"#;
         let node = kuchiki::parse_html().one(html);
 

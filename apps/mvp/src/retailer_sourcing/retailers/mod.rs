@@ -74,12 +74,7 @@ pub fn trailing_digit_run(url: &str) -> usize {
     segments(path_of(url))
         .into_iter()
         .last()
-        .map(|last| {
-            last.bytes()
-                .rev()
-                .take_while(|byte| byte.is_ascii_digit())
-                .count()
-        })
+        .map(|last| last.bytes().rev().take_while(|byte| byte.is_ascii_digit()).count())
         .unwrap_or(0)
 }
 
@@ -107,16 +102,10 @@ mod tests {
     fn classifies_shopify_link_paths() {
         let cases = [
             ("https://minisforumpc.eu/products/um890", LinkKind::Product),
-            (
-                "https://minisforumpc.eu/de/products/ms01",
-                LinkKind::Product,
-            ),
+            ("https://minisforumpc.eu/de/products/ms01", LinkKind::Product),
             ("https://minisforumpc.eu/collections/all", LinkKind::Catalog),
             ("https://minisforumpc.eu/pages/about", LinkKind::Content),
-            (
-                "https://minisforumpc.eu/blogs/news/a-post",
-                LinkKind::Content,
-            ),
+            ("https://minisforumpc.eu/blogs/news/a-post", LinkKind::Content),
             ("https://minisforumpc.eu/", LinkKind::Unknown),
             ("https://minisforumpc.eu/agents.md", LinkKind::Unknown),
         ];

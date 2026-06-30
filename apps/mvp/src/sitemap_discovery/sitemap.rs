@@ -102,9 +102,7 @@ impl SitemapKind {
     /// Strips query parameters, extracts the last path segment, lowercases it,
     /// and checks for keywords.
     pub fn from_location(location: &str) -> Self {
-        let path = location
-            .split_once('?')
-            .map_or(location, |(path, _query)| path);
+        let path = location.split_once('?').map_or(location, |(path, _query)| path);
 
         let filename = path.rsplit('/').next().unwrap_or(path).to_lowercase();
 
@@ -139,10 +137,7 @@ impl SitemapUrl {
     pub fn new(location: impl Into<String>, source: impl Into<String>) -> Self {
         let location = location.into();
         let source = source.into();
-        debug_assert!(
-            !location.is_empty(),
-            "sitemap URL location must not be empty"
-        );
+        debug_assert!(!location.is_empty(), "sitemap URL location must not be empty");
         debug_assert!(!source.is_empty(), "sitemap URL source must not be empty");
         Self {
             location,
@@ -180,10 +175,7 @@ pub struct SitemapImage {
 impl SitemapImage {
     pub fn new(location: impl Into<String>) -> Self {
         let location = location.into();
-        debug_assert!(
-            !location.is_empty(),
-            "sitemap image location must not be empty"
-        );
+        debug_assert!(!location.is_empty(), "sitemap image location must not be empty");
         Self {
             location,
             title: None,
@@ -232,11 +224,7 @@ pub struct ParseChangeFrequencyError {
 
 impl fmt::Display for ParseChangeFrequencyError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "unsupported sitemap change frequency: {}",
-            self.value
-        )
+        write!(formatter, "unsupported sitemap change frequency: {}", self.value)
     }
 }
 
@@ -268,8 +256,7 @@ mod tests {
 
     #[test]
     fn infers_product_kind_from_shopify_url() {
-        let sitemap =
-            SitemapDocument::at("https://minisforumpc.eu/sitemap_products_1.xml?from=1&to=2");
+        let sitemap = SitemapDocument::at("https://minisforumpc.eu/sitemap_products_1.xml?from=1&to=2");
         assert_eq!(sitemap.kind(), SitemapKind::Product);
     }
 
@@ -306,14 +293,8 @@ mod tests {
     #[test]
     fn kind_matching_is_case_insensitive() {
         let cases = [
-            (
-                "https://example.com/Sitemap_Products_1.xml",
-                SitemapKind::Product,
-            ),
-            (
-                "https://example.com/SITEMAP_COLLECTIONS_1.XML",
-                SitemapKind::Collection,
-            ),
+            ("https://example.com/Sitemap_Products_1.xml", SitemapKind::Product),
+            ("https://example.com/SITEMAP_COLLECTIONS_1.XML", SitemapKind::Collection),
             ("https://example.com/Catalog.xml", SitemapKind::Catalog),
         ];
 
@@ -324,9 +305,7 @@ mod tests {
 
     #[test]
     fn kind_detection_ignores_query_params() {
-        let sitemap = SitemapDocument::at(
-            "https://example.com/sitemap_products_1.xml?from=1&to=2&nocache=12345",
-        );
+        let sitemap = SitemapDocument::at("https://example.com/sitemap_products_1.xml?from=1&to=2&nocache=12345");
         assert_eq!(sitemap.kind(), SitemapKind::Product);
     }
 
@@ -351,8 +330,7 @@ mod tests {
             ),
         ];
 
-        let mut collections =
-            SitemapDocument::at("https://minisforumpc.eu/sitemap_collections_1.xml");
+        let mut collections = SitemapDocument::at("https://minisforumpc.eu/sitemap_collections_1.xml");
         collections.urls = vec![SitemapUrl::new(
             "https://minisforumpc.eu/collections/all",
             "https://minisforumpc.eu/sitemap.xml",
@@ -362,10 +340,7 @@ mod tests {
         root.children = vec![products, collections];
 
         // The tree answers as one node, recursing into children.
-        assert_eq!(
-            root.all_urls("https://minisforumpc.eu/sitemap.xml").count(),
-            3
-        );
+        assert_eq!(root.all_urls("https://minisforumpc.eu/sitemap.xml").count(), 3);
         assert_eq!(root.urls_of_kind(SitemapKind::Product).len(), 2);
         assert_eq!(root.urls_of_kind(SitemapKind::Collection).len(), 1);
         assert_eq!(root.urls_of_kind(SitemapKind::Catalog).len(), 0);
@@ -400,10 +375,7 @@ mod tests {
     fn rejects_unknown_change_frequency() {
         let error = ChangeFrequency::from_str("sometimes").expect_err("must fail");
 
-        assert_eq!(
-            error.to_string(),
-            "unsupported sitemap change frequency: sometimes"
-        );
+        assert_eq!(error.to_string(), "unsupported sitemap change frequency: sometimes");
         assert_eq!(error.value, "sometimes");
     }
 
@@ -428,38 +400,22 @@ mod tests {
 
     #[test]
     fn sets_priority_in_range() {
-        let url = SitemapUrl::new(
-            "https://example.com/product",
-            "https://example.com/sitemap.xml",
-        )
-        .with_priority(0.5);
+        let url = SitemapUrl::new("https://example.com/product", "https://example.com/sitemap.xml").with_priority(0.5);
         assert_eq!(url.priority, Some(0.5));
     }
 
     #[test]
     fn sets_priority_at_bounds() {
-        let url = SitemapUrl::new(
-            "https://example.com/product",
-            "https://example.com/sitemap.xml",
-        )
-        .with_priority(0.0);
+        let url = SitemapUrl::new("https://example.com/product", "https://example.com/sitemap.xml").with_priority(0.0);
         assert_eq!(url.priority, Some(0.0));
 
-        let url = SitemapUrl::new(
-            "https://example.com/product",
-            "https://example.com/sitemap.xml",
-        )
-        .with_priority(1.0);
+        let url = SitemapUrl::new("https://example.com/product", "https://example.com/sitemap.xml").with_priority(1.0);
         assert_eq!(url.priority, Some(1.0));
     }
 
     #[test]
     #[should_panic(expected = "sitemap priority must be in [0.0, 1.0]")]
     fn panics_on_priority_out_of_range() {
-        SitemapUrl::new(
-            "https://example.com/product",
-            "https://example.com/sitemap.xml",
-        )
-        .with_priority(1.5);
+        SitemapUrl::new("https://example.com/product", "https://example.com/sitemap.xml").with_priority(1.5);
     }
 }

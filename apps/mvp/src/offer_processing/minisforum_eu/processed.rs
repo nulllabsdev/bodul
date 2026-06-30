@@ -19,8 +19,8 @@
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumEuDestructuredProduct, MinisForumEuFeature, MinisForumEuMetaVariant,
-    MinisForumEuProductVariant, MinisForumEuXcottonPpVariants,
+    MinisForumEuDestructuredProduct, MinisForumEuFeature, MinisForumEuMetaVariant, MinisForumEuProductVariant,
+    MinisForumEuXcottonPpVariants,
 };
 
 /// A processed MinisForum EU product.
@@ -73,9 +73,7 @@ fn collapse_after_colon(text: &str) -> String {
     let mut chars = text.chars().peekable();
     while let Some(current) = chars.next() {
         out.push(current);
-        if (current == ':' || current == '：')
-            && chars.peek().is_some_and(|next| next.is_whitespace())
-        {
+        if (current == ':' || current == '：') && chars.peek().is_some_and(|next| next.is_whitespace()) {
             while chars.peek().is_some_and(|next| next.is_whitespace()) {
                 chars.next();
             }
@@ -245,16 +243,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -264,19 +257,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -422,12 +410,8 @@ impl From<MinisForumEuProcessedAvailability> for bool {
 impl From<super::destructured::MinisForumEuAvailability> for MinisForumEuProcessedAvailability {
     fn from(availability: super::destructured::MinisForumEuAvailability) -> Self {
         match availability {
-            super::destructured::MinisForumEuAvailability::InStock => {
-                MinisForumEuProcessedAvailability::Available
-            }
-            super::destructured::MinisForumEuAvailability::OutOfStock => {
-                MinisForumEuProcessedAvailability::Unavailable
-            }
+            super::destructured::MinisForumEuAvailability::InStock => MinisForumEuProcessedAvailability::Available,
+            super::destructured::MinisForumEuAvailability::OutOfStock => MinisForumEuProcessedAvailability::Unavailable,
         }
     }
 }
@@ -453,14 +437,7 @@ impl TryFrom<MinisForumEuDestructuredProduct> for MinisForumEuProcessedProduct {
                 .collect(),
             features: destructured
                 .feature_chart
-                .map(|chart| {
-                    chart
-                        .features
-                        .into_iter()
-                        .flatten()
-                        .map(Into::into)
-                        .collect()
-                })
+                .map(|chart| chart.features.into_iter().flatten().map(Into::into).collect())
                 .unwrap_or_default(),
             variants,
         })
@@ -503,10 +480,7 @@ fn make_variants(
 
 /// Combines one matched (product variant, `meta` variant) pair into a
 /// [`ZzzVariant`], applying the same per-field conversions as elsewhere.
-fn make_variant(
-    product: MinisForumEuProductVariant,
-    meta: MinisForumEuMetaVariant,
-) -> Result<ZzzVariant, String> {
+fn make_variant(product: MinisForumEuProductVariant, meta: MinisForumEuMetaVariant) -> Result<ZzzVariant, String> {
     // Both sources must agree on the SKU; lift it to a single field.
     if product.sku != meta.sku {
         return Err(format!(

@@ -99,9 +99,7 @@ fn blank_one(context: &NodeRef, structure: &Structure, components: &mut Vec<Comp
             // Blank the attribute to `::` on every match (only if present).
             if let Ok(matches) = context.select(&scrub.selector) {
                 for matched in matches.collect::<Vec<_>>() {
-                    if let Some(value) =
-                        matched.attributes.borrow_mut().get_mut(scrub.attr.as_str())
-                    {
+                    if let Some(value) = matched.attributes.borrow_mut().get_mut(scrub.attr.as_str()) {
                         *value = "::".to_string();
                     }
                 }
@@ -113,9 +111,7 @@ fn blank_one(context: &NodeRef, structure: &Structure, components: &mut Vec<Comp
             // only the script(s) actually containing it are blanked.
             if let Ok(matches) = context.select(&json.selector) {
                 for matched in matches.collect::<Vec<_>>() {
-                    if json.anchor.is_empty()
-                        || matched.as_node().text_contents().contains(&json.anchor)
-                    {
+                    if json.anchor.is_empty() || matched.as_node().text_contents().contains(&json.anchor) {
                         set_value(&matched, "", &format!("!{}!", json.name));
                     }
                 }
@@ -154,9 +150,7 @@ mod tests {
     use kuchiki::traits::*;
 
     use super::apply;
-    use crate::html_parser::structure::{
-        RetailerArchitecture, collection, json, particle, segment,
-    };
+    use crate::html_parser::structure::{RetailerArchitecture, collection, json, particle, segment};
 
     fn blanked_html(architecture: &RetailerArchitecture, html: &str) -> String {
         let document = kuchiki::parse_html().one(html);
@@ -222,8 +216,7 @@ mod tests {
 
     #[test]
     fn replaces_text_content_with_placeholders() {
-        let architecture =
-            RetailerArchitecture::new(vec![particle("h1", "heading", vec![("", "value")])]);
+        let architecture = RetailerArchitecture::new(vec![particle("h1", "heading", vec![("", "value")])]);
         let html = r#"<html><body><h1>Hello</h1></body></html>"#;
 
         let blanked = blanked_html(&architecture, html);
@@ -245,17 +238,11 @@ mod tests {
         let (page, components) = blank_components(&architecture, html);
 
         // Each item is replaced by a numbered placeholder and lifted out.
-        assert!(
-            page.contains("[metas_0]") && page.contains("[metas_1]"),
-            "got: {page}"
-        );
+        assert!(page.contains("[metas_0]") && page.contains("[metas_1]"), "got: {page}");
         assert!(!page.contains("Mouse Pad") && !page.contains("/p/1"));
         assert_eq!(components.len(), 2);
         assert_eq!(
-            components
-                .iter()
-                .filter(|c| c.contains(r#"content="%value%""#))
-                .count(),
+            components.iter().filter(|c| c.contains(r#"content="%value%""#)).count(),
             2
         );
     }
@@ -267,7 +254,8 @@ mod tests {
             "schema",
             vec![("sku", "sku")],
         )]);
-        let html = r#"<html><head><script type="application/ld+json">{"sku":"MS01"}</script></head><body></body></html>"#;
+        let html =
+            r#"<html><head><script type="application/ld+json">{"sku":"MS01"}</script></head><body></body></html>"#;
 
         let blanked = blanked_html(&architecture, html);
 

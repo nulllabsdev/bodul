@@ -16,8 +16,8 @@ use chrono::NaiveDate;
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumFrDestructuredProduct, MinisForumFrFeature, MinisForumFrMetaVariant,
-    MinisForumFrXcottonPpVariants, MinisForumFrXcottonVariant,
+    MinisForumFrDestructuredProduct, MinisForumFrFeature, MinisForumFrMetaVariant, MinisForumFrXcottonPpVariants,
+    MinisForumFrXcottonVariant,
 };
 
 /// A processed MinisForum FR product.
@@ -71,9 +71,7 @@ fn collapse_after_colon(text: &str) -> String {
     let mut chars = text.chars().peekable();
     while let Some(current) = chars.next() {
         out.push(current);
-        if (current == ':' || current == '：')
-            && chars.peek().is_some_and(|next| next.is_whitespace())
-        {
+        if (current == ':' || current == '：') && chars.peek().is_some_and(|next| next.is_whitespace()) {
             while chars.peek().is_some_and(|next| next.is_whitespace()) {
                 chars.next();
             }
@@ -230,16 +228,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -249,19 +242,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -381,14 +369,7 @@ impl TryFrom<MinisForumFrDestructuredProduct> for MinisForumFrProcessedProduct {
                 .collect(),
             features: destructured
                 .feature_chart
-                .map(|chart| {
-                    chart
-                        .features
-                        .into_iter()
-                        .flatten()
-                        .map(Into::into)
-                        .collect()
-                })
+                .map(|chart| chart.features.into_iter().flatten().map(Into::into).collect())
                 .unwrap_or_default(),
             variants,
         })
@@ -515,18 +496,15 @@ mod tests {
     fn processes_every_fr_page() {
         let dir = std::path::Path::new("data/pages-destructed/MinisForumFr");
         let mut count = 0;
-        for entry in std::fs::read_dir(dir)
-            .expect("FR destructed dir exists")
-            .flatten()
-        {
+        for entry in std::fs::read_dir(dir).expect("FR destructed dir exists").flatten() {
             let path = entry.path();
             if path.extension().is_none_or(|ext| ext != "json") {
                 continue;
             }
             let raw = std::fs::read_to_string(&path).expect("reads file");
             // Strict deserialize must always succeed.
-            let destructured: MinisForumFrDestructuredProduct = serde_json::from_str(&raw)
-                .unwrap_or_else(|e| panic!("deserialize {}: {e}", path.display()));
+            let destructured: MinisForumFrDestructuredProduct =
+                serde_json::from_str(&raw).unwrap_or_else(|e| panic!("deserialize {}: {e}", path.display()));
             // Processing may legitimately fail on cross-source-inconsistent pages
             // (e.g. an xcotton variant price of 0 vs the meta price) — the guards
             // reject those by design, like AU's known failures. So we only require

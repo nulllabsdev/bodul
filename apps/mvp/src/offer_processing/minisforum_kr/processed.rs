@@ -16,8 +16,8 @@ use chrono::NaiveDate;
 use money::{Currency, Money};
 
 use super::destructured::{
-    MinisForumKrAvailability, MinisForumKrDestructuredProduct, MinisForumKrMetaVariant,
-    MinisForumKrOffer, MinisForumKrProductVariant, MinisForumKrSchema,
+    MinisForumKrAvailability, MinisForumKrDestructuredProduct, MinisForumKrMetaVariant, MinisForumKrOffer,
+    MinisForumKrProductVariant, MinisForumKrSchema,
 };
 
 /// A processed MinisForum KR product.
@@ -190,16 +190,11 @@ fn currency_from_code(code: &str) -> Result<Currency, String> {
 mod money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Money,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Money, serializer: S) -> Result<S::Ok, S::Error> {
         serde::Serialize::serialize(&MoneyWire::from_money(money), serializer)
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Money, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Money, D::Error> {
         let wire: MoneyWire = serde::Deserialize::deserialize(deserializer)?;
         wire.into_money()
     }
@@ -209,19 +204,14 @@ mod money_wire {
 mod option_money_wire {
     use super::{Money, MoneyWire};
 
-    pub fn serialize<S: serde::Serializer>(
-        money: &Option<Money>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: serde::Serializer>(money: &Option<Money>, serializer: S) -> Result<S::Ok, S::Error> {
         match money {
             Some(money) => serializer.serialize_some(&MoneyWire::from_money(money)),
             None => serializer.serialize_none(),
         }
     }
 
-    pub fn deserialize<'de, D: serde::Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<Option<Money>, D::Error> {
+    pub fn deserialize<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Money>, D::Error> {
         let wire: Option<MoneyWire> = serde::Deserialize::deserialize(deserializer)?;
         wire.map(MoneyWire::into_money).transpose()
     }
@@ -329,14 +319,8 @@ impl TryFrom<MinisForumKrDestructuredProduct> for MinisForumKrProcessedProduct {
             .cloned();
 
         // Brand/sku for the core come from the first schema carrying them.
-        let core_sku = destructured
-            .schemas
-            .iter()
-            .find_map(|schema| schema.sku.clone());
-        let core_brand = destructured
-            .schemas
-            .iter()
-            .find_map(|schema| schema.brand.clone());
+        let core_sku = destructured.schemas.iter().find_map(|schema| schema.sku.clone());
+        let core_brand = destructured.schemas.iter().find_map(|schema| schema.brand.clone());
 
         // Derive product-level price from the first `product_variants` entry
         // when no schema offer is present (most KR pages lack offers).
@@ -481,12 +465,7 @@ fn make_variant(
                 .map(parse_cents)
                 .transpose()?
                 .map(|cents| Money::new(cents, Currency::KRW));
-            (
-                pv.option1.clone(),
-                pv.option2.clone(),
-                pv.option3.clone(),
-                cat,
-            )
+            (pv.option1.clone(), pv.option2.clone(), pv.option3.clone(), cat)
         }
         None => (None, None, None, None),
     };

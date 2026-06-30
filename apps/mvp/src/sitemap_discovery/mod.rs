@@ -78,11 +78,7 @@ where
 /// Fetches every root sitemap in `config` (following children) and merges them
 /// into one tree. When `out_dir` is `Some`, each retrieved body is written there
 /// verbatim; the directory is created up front.
-fn fetch_config_inner<F>(
-    config: SitemapConfig,
-    get: F,
-    out_dir: Option<&Path>,
-) -> Result<SitemapDocument, SitemapError>
+fn fetch_config_inner<F>(config: SitemapConfig, get: F, out_dir: Option<&Path>) -> Result<SitemapDocument, SitemapError>
 where
     F: Fn(&str) -> Result<String, FetchError>,
 {
@@ -151,12 +147,9 @@ where
         Parsed::UrlSet(urls) => document.urls = urls,
         Parsed::Index(children) => {
             for child in children {
-                document.children.push(fetch_document(
-                    &child.location,
-                    child.last_modified,
-                    get,
-                    out_dir,
-                )?);
+                document
+                    .children
+                    .push(fetch_document(&child.location, child.last_modified, get, out_dir)?);
             }
         }
     }
