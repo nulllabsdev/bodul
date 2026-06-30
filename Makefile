@@ -1,4 +1,4 @@
-.PHONY: fmt test check docker-build docker-up docker-down gomd wip
+.PHONY: fmt test check check-strict docker-build docker-up docker-down gomd wip
 
 fmt:
 	$(MAKE) -C apps/mvp fmt
@@ -14,6 +14,9 @@ check:
 	$(MAKE) -C apps/mvp check
 	$(MAKE) -C lib/money check
 	$(MAKE) -C lib/shared check
+
+check-strict:
+	RUSTFLAGS="-Awarnings" cargo check
 
 docker-build:
 	docker build -t bodul-mvp .
