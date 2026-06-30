@@ -71,6 +71,12 @@ impl InMemoryRetailerRepository {
     }
 }
 
+impl InMemoryRetailerRepository {
+    pub fn all(&self) -> Vec<Retailer> {
+        self.retailers.clone()
+    }
+}
+
 impl Default for InMemoryRetailerRepository {
     fn default() -> Self {
         Self::new()

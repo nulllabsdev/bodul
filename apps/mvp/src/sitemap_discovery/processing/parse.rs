@@ -7,12 +7,32 @@
 
 use std::str::FromStr;
 
+use crate::lib_sitemap::io::{ChangeFrequency, SitemapImage, SitemapUrl};
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use quick_xml::Reader;
 use quick_xml::escape;
 use quick_xml::events::{BytesRef, Event};
 
-use super::sitemap::{ChangeFrequency, SitemapImage, SitemapUrl};
+#[derive(Debug, thiserror::Error, Clone)]
+pub enum SitemapParseError {
+    #[error("XML error: {0}")]
+    Xml(#[from] quick_xml::Error),
+
+    #[error("UTF-8 error: {0}")]
+    Utf8(#[from] std::str::Utf8Error),
+
+    #[error("XML escape error: {0}")]
+    Escape(#[from] quick_xml::escape::EscapeError),
+
+    #[error("encoding error: {0}")]
+    Encoding(#[from] quick_xml::encoding::EncodingError),
+
+    #[error("unknown XML entity: &{0};")]
+    UnknownEntity(String),
+
+    #[error("unrecognized sitemap document (no <sitemapindex> or <urlset> root)")]
+    UnrecognizedDocument,
+}
 
 /// The two kinds of sitemap document.
 #[derive(Debug, PartialEq)]
@@ -28,6 +48,109 @@ pub enum Parsed {
 pub struct ChildRef {
     pub location: String,
     pub last_modified: Option<DateTime<Utc>>,
+}
+
+/// Parses sitemap XML, returning the index references or the URL entries.
+pub fn parse(xml: &str, source: &str) -> Result<Parsed, SitemapParseError> {
+    let mut reader = Reader::from_str(xml);
+
+    let mut mode: Option<Mode> = None;
+    let mut children: Vec<ChildRef> = Vec::new();
+    let mut urls: Vec<SitemapUrl> = Vec::new();
+
+    let mut child: Option<ChildBuilder> = None;
+    let mut url: Option<UrlBuilder> = None;
+    let mut image: Option<ImageBuilder> = None;
+
+    let mut leaf: Option<Vec<u8>> = None;
+    let mut text = String::new();
+    let mut root_seen = false;
+
+    loop {
+        match reader.read_event()? {
+            Event::Start(event) => match event.local_name().as_ref() {
+                b"sitemapindex" => {
+                    if !root_seen {
+                        mode = Some(Mode::Index);
+                        root_seen = true;
+                    }
+                }
+                b"urlset" => {
+                    if !root_seen {
+                        mode = Some(Mode::UrlSet);
+                        root_seen = true;
+                    }
+                }
+                _ if !root_seen => return Err(SitemapParseError::UnrecognizedDocument),
+                b"sitemap" => child = Some(ChildBuilder::default()),
+                b"url" => url = Some(UrlBuilder::default()),
+                b"image" => image = Some(ImageBuilder::default()),
+                b"loc" | b"lastmod" | b"changefreq" | b"priority" | b"title" | b"caption" => {
+                    leaf = Some(event.local_name().as_ref().to_vec());
+                    text.clear();
+                }
+                _ => {}
+            },
+            Event::Text(event) if leaf.is_some() => {
+                let raw = std::str::from_utf8(event.as_ref())?;
+                text.push_str(&escape::unescape(raw)?);
+            }
+            Event::CData(event) if leaf.is_some() => {
+                text.push_str(std::str::from_utf8(event.as_ref())?);
+            }
+            // quick-xml emits entity references (e.g. `&amp;` in a `<loc>`) as
+            // their own event, separate from the surrounding text.
+            Event::GeneralRef(event) if leaf.is_some() => {
+                text.push(resolve_entity(&event)?);
+            }
+            Event::End(event) => match event.local_name().as_ref() {
+                b"sitemap" => {
+                    if let Some(builder) = child.take()
+                        && let Some(location) = builder.location
+                    {
+                        let child_ref = ChildRef {
+                            location,
+                            last_modified: builder.last_modified,
+                        };
+                        children.push(child_ref);
+                    }
+                }
+                b"url" => {
+                    if let Some(builder) = url.take()
+                        && let Some(entry) = builder.build(source)
+                    {
+                        urls.push(entry);
+                    }
+                }
+                b"image" => {
+                    if let (Some(builder), Some(parent)) = (image.take(), url.as_mut())
+                        && let Some(location) = builder.location
+                        && !location.is_empty()
+                    {
+                        let mut entry = SitemapImage::new(location);
+                        entry.title = builder.title;
+                        entry.caption = builder.caption;
+                        parent.images.push(entry);
+                    }
+                }
+                name if leaf.as_deref() == Some(name) => {
+                    let value = text.trim().to_string();
+                    assign(name, value, child.as_mut(), url.as_mut(), image.as_mut());
+                    leaf = None;
+                    text.clear();
+                }
+                _ => {}
+            },
+            Event::Eof => break,
+            _ => {}
+        }
+    }
+
+    match mode {
+        Some(Mode::Index) => Ok(Parsed::Index(children)),
+        Some(Mode::UrlSet) => Ok(Parsed::UrlSet(urls)),
+        None => Err(SitemapParseError::UnrecognizedDocument),
+    }
 }
 
 enum Mode {
@@ -57,111 +180,19 @@ struct ImageBuilder {
     caption: Option<String>,
 }
 
-/// Parses sitemap XML, returning the index references or the URL entries.
-pub fn parse(xml: &str) -> Result<Parsed, String> {
-    let mut reader = Reader::from_str(xml);
-
-    let mut mode: Option<Mode> = None;
-    let mut children: Vec<ChildRef> = Vec::new();
-    let mut urls: Vec<SitemapUrl> = Vec::new();
-
-    let mut child: Option<ChildBuilder> = None;
-    let mut url: Option<UrlBuilder> = None;
-    let mut image: Option<ImageBuilder> = None;
-
-    let mut leaf: Option<Vec<u8>> = None;
-    let mut text = String::new();
-
-    loop {
-        match reader.read_event().map_err(|error| error.to_string())? {
-            Event::Start(event) => match event.name().as_ref() {
-                b"sitemapindex" => {
-                    mode.get_or_insert(Mode::Index);
-                }
-                b"urlset" => {
-                    mode.get_or_insert(Mode::UrlSet);
-                }
-                b"sitemap" => child = Some(ChildBuilder::default()),
-                b"url" => url = Some(UrlBuilder::default()),
-                b"image:image" => image = Some(ImageBuilder::default()),
-                b"loc" | b"lastmod" | b"changefreq" | b"priority" | b"image:loc" | b"image:title"
-                | b"image:caption" => {
-                    leaf = Some(event.name().as_ref().to_vec());
-                    text.clear();
-                }
-                _ => {}
-            },
-            Event::Text(event) if leaf.is_some() => {
-                let raw = std::str::from_utf8(event.as_ref()).map_err(|error| error.to_string())?;
-                text.push_str(&escape::unescape(raw).map_err(|error| error.to_string())?);
-            }
-            // quick-xml emits entity references (e.g. `&amp;` in a `<loc>`) as
-            // their own event, separate from the surrounding text.
-            Event::GeneralRef(event) if leaf.is_some() => {
-                if let Some(resolved) = resolve_entity(&event)? {
-                    text.push(resolved);
-                }
-            }
-            Event::End(event) => match event.name().as_ref() {
-                b"sitemap" => {
-                    if let Some(builder) = child.take()
-                        && let Some(location) = builder.location
-                    {
-                        children.push(ChildRef {
-                            location,
-                            last_modified: builder.last_modified,
-                        });
-                    }
-                }
-                b"url" => {
-                    if let Some(builder) = url.take()
-                        && let Some(entry) = builder.build()
-                    {
-                        urls.push(entry);
-                    }
-                }
-                b"image:image" => {
-                    if let (Some(builder), Some(parent)) = (image.take(), url.as_mut())
-                        && let Some(location) = builder.location
-                        && !location.is_empty()
-                    {
-                        let mut entry = SitemapImage::new(location);
-                        entry.title = builder.title;
-                        entry.caption = builder.caption;
-                        parent.images.push(entry);
-                    }
-                }
-                name if leaf.as_deref() == Some(name) => {
-                    let value = text.trim().to_string();
-                    assign(name, value, child.as_mut(), url.as_mut(), image.as_mut());
-                    leaf = None;
-                    text.clear();
-                }
-                _ => {}
-            },
-            Event::Eof => break,
-            _ => {}
-        }
-    }
-
-    match mode {
-        Some(Mode::Index) => Ok(Parsed::Index(children)),
-        Some(Mode::UrlSet) => Ok(Parsed::UrlSet(urls)),
-        None => Err("unrecognized sitemap document (no <sitemapindex> or <urlset> root)".to_string()),
-    }
-}
-
 impl UrlBuilder {
-    fn build(self) -> Option<SitemapUrl> {
+    fn build(self, source: &str) -> Option<SitemapUrl> {
         let location = self.location.filter(|location| !location.is_empty())?;
 
-        let source = "xxx".to_string(); // Placeholder; the actual source should be passed in or tracked elsewhere.
+        let entry = SitemapUrl {
+            location,
+            source: source.to_string(),
+            last_modified: self.last_modified,
+            change_frequency: self.change_frequency,
+            priority: self.priority,
+            images: self.images,
+        };
 
-        let mut entry = SitemapUrl::new(location, source);
-        entry.last_modified = self.last_modified;
-        entry.change_frequency = self.change_frequency;
-        entry.priority = self.priority;
-        entry.images = self.images;
         Some(entry)
     }
 }
@@ -177,9 +208,9 @@ fn assign(
 ) {
     if let Some(image) = image {
         match name {
-            b"image:loc" => image.location = Some(value),
-            b"image:title" => image.title = Some(value),
-            b"image:caption" => image.caption = Some(value),
+            b"loc" => image.location = Some(value),
+            b"title" => image.title = Some(value),
+            b"caption" => image.caption = Some(value),
             _ => {}
         }
         return;
@@ -189,7 +220,12 @@ fn assign(
             b"loc" => url.location = Some(value),
             b"lastmod" => url.last_modified = parse_lastmod(&value),
             b"changefreq" => url.change_frequency = ChangeFrequency::from_str(&value).ok(),
-            b"priority" => url.priority = value.parse::<f32>().ok(),
+            b"priority" => {
+                url.priority = value
+                    .parse::<f32>()
+                    .ok()
+                    .filter(|priority| (0.0..=1.0).contains(priority));
+            }
             _ => {}
         }
         return;
@@ -206,19 +242,19 @@ fn assign(
 /// Resolves an XML entity reference to its character: numeric refs (`&#38;`,
 /// `&#x26;`) via quick-xml, plus the five predefined named entities. Unknown
 /// names yield `None` and are dropped (sitemaps only use these).
-fn resolve_entity(reference: &BytesRef) -> Result<Option<char>, String> {
-    if let Some(character) = reference.resolve_char_ref().map_err(|error| error.to_string())? {
-        return Ok(Some(character));
+fn resolve_entity(reference: &BytesRef) -> Result<char, SitemapParseError> {
+    if let Some(character) = reference.resolve_char_ref()? {
+        return Ok(character);
     }
-    let name = reference.decode().map_err(|error| error.to_string())?;
-    Ok(match name.as_ref() {
-        "amp" => Some('&'),
-        "lt" => Some('<'),
-        "gt" => Some('>'),
-        "quot" => Some('"'),
-        "apos" => Some('\''),
-        _ => None,
-    })
+    let name = reference.decode()?;
+    match name.as_ref() {
+        "amp" => Ok('&'),
+        "lt" => Ok('<'),
+        "gt" => Ok('>'),
+        "quot" => Ok('"'),
+        "apos" => Ok('\''),
+        unknown => Err(SitemapParseError::UnknownEntity(unknown.to_string())),
+    }
 }
 
 /// Parses a `<lastmod>` value best-effort: RFC 3339 first, then a bare
@@ -240,7 +276,7 @@ fn parse_lastmod(value: &str) -> Option<DateTime<Utc>> {
 #[cfg(test)]
 mod tests {
     use super::{Parsed, parse};
-    use crate::sitemap_discovery::sitemap::ChangeFrequency;
+    use crate::lib_sitemap::io::ChangeFrequency;
 
     #[test]
     fn parses_index_with_lastmod() {
@@ -252,7 +288,7 @@ mod tests {
             <sitemap><loc>https://minisforumpc.eu/sitemap_collections_1.xml</loc></sitemap>
         </sitemapindex>"#;
 
-        match parse(xml).expect("parses") {
+        match parse(xml, "fixture.xml").expect("parses") {
             Parsed::Index(children) => {
                 assert_eq!(children.len(), 2);
                 assert_eq!(children[0].location, "https://minisforumpc.eu/sitemap_products_1.xml");
@@ -278,11 +314,12 @@ mod tests {
             </url>
         </urlset>"#;
 
-        match parse(xml).expect("parses") {
+        match parse(xml, "fixture.xml").expect("parses") {
             Parsed::UrlSet(urls) => {
                 assert_eq!(urls.len(), 1);
                 let entry = &urls[0];
                 assert_eq!(entry.location, "https://minisforumpc.eu/products/um890");
+                assert_eq!(entry.source, "fixture.xml");
                 assert!(entry.last_modified.is_some());
                 assert_eq!(entry.change_frequency, Some(ChangeFrequency::Daily));
                 assert_eq!(entry.priority, Some(0.8));
@@ -296,7 +333,7 @@ mod tests {
 
     #[test]
     fn rejects_unrecognized_root() {
-        assert!(parse("<html><body>nope</body></html>").is_err());
+        assert!(parse("<html><body>nope</body></html>", "fixture.xml").is_err());
     }
 
     #[test]
@@ -304,12 +341,44 @@ mod tests {
         let xml = r#"<sitemapindex><sitemap>
             <loc>https://minisforumpc.eu/sitemap_products_1.xml?from=1&amp;to=2</loc>
         </sitemap></sitemapindex>"#;
-        match parse(xml).expect("parses") {
+        match parse(xml, "fixture.xml").expect("parses") {
             Parsed::Index(children) => assert_eq!(
                 children[0].location,
                 "https://minisforumpc.eu/sitemap_products_1.xml?from=1&to=2"
             ),
             other => panic!("expected index, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn parses_prefixed_elements_and_cdata() {
+        let xml = r#"<sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9">
+            <sm:url><sm:loc><![CDATA[https://example.com/a?x=1&y=2]]></sm:loc></sm:url>
+        </sm:urlset>"#;
+
+        match parse(xml, "prefixed.xml").expect("parses") {
+            Parsed::UrlSet(urls) => {
+                assert_eq!(urls[0].location, "https://example.com/a?x=1&y=2");
+                assert_eq!(urls[0].source, "prefixed.xml");
+            }
+            other => panic!("expected urlset, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn ignores_priority_outside_protocol_range() {
+        let xml = r#"<urlset><url><loc>https://example.com/a</loc><priority>2</priority></url></urlset>"#;
+
+        match parse(xml, "fixture.xml").expect("parses") {
+            Parsed::UrlSet(urls) => assert_eq!(urls[0].priority, None),
+            other => panic!("expected urlset, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_unknown_entities_instead_of_corrupting_urls() {
+        let xml = r#"<urlset><url><loc>https://example.com/a&unknown;</loc></url></urlset>"#;
+
+        assert!(parse(xml, "fixture.xml").is_err());
     }
 }
