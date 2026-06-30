@@ -125,7 +125,14 @@ mod handler {
         }
 
         fn record_request(&self, cmd: &Command) -> Result<(), RepositoryError> {
-            self.retrieval_repo.insert(cmd.retrieval_id, cmd.retailer_code)?;
+            self.retrieval_repo
+                .insert(cmd.retrieval_id, cmd.retailer_code)
+                .map_err(|e| {
+                    RepositoryError::Unexpected(format!(
+                        "[{:?}] failed to insert retrieval '{}': {}",
+                        cmd.retailer_code, cmd.retrieval_id, e
+                    ))
+                })?;
 
             Ok(())
         }
