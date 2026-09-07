@@ -620,7 +620,13 @@ mod fetching {
                 if let Some(document) = self.fetch_sitemap(&i)? {
                     documents.push(document.clone());
 
-                    let parsed = parse_it(&i.location, &document.body)?;
+                    let parsed = match parse_it(&i.location, &document.body) {
+                        Ok(parsed) => parsed,
+                        Err(error) => {
+                            self.add_error(error);
+                            continue;
+                        }
+                    };
 
                     if let Parsed::Index(children) = parsed {
                         for child in children {
@@ -660,7 +666,13 @@ mod fetching {
                 return Ok(None);
             }
 
-            let document = self.fetch_file(i)?;
+            let document = match self.fetch_file(i) {
+                Ok(document) => document,
+                Err(error) => {
+                    self.add_error(error);
+                    return Ok(None);
+                }
+            };
 
             self.mark_as_processed(i.location.as_str());
 
