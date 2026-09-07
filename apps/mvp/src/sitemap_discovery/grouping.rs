@@ -47,14 +47,14 @@ mod models {
 }
 
 mod grouping {
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
     use shared::link::LinkKind;
     use shared::retailer::RetailerCode;
 
     use crate::lib_sitemap::io::SitemapDocument;
     use ::retailer_sourcing::registry::classify_link;
 
-    #[derive(Debug, Default, Serialize)]
+    #[derive(Debug, Default, Serialize, Deserialize)]
     pub struct GroupedLinks {
         pub product: Vec<String>,
         pub catalog: Vec<String>,
@@ -106,6 +106,27 @@ mod grouping {
     fn dedup(list: &mut Vec<String>) {
         list.sort_unstable();
         list.dedup();
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::GroupedLinks;
+
+        #[test]
+        fn round_trips_product_urls_through_json() {
+            let mut links = GroupedLinks::default();
+            links.product = vec![
+                "https://example.com/products/a".to_string(),
+                "https://example.com/products/b".to_string(),
+            ];
+            links.catalog = vec!["https://example.com/collections/x".to_string()];
+
+            let value = serde_json::to_value(&links).unwrap();
+            let restored: GroupedLinks = serde_json::from_value(value).unwrap();
+
+            assert_eq!(restored.product, links.product);
+            assert_eq!(restored.catalog, links.catalog);
+        }
     }
 }
 
@@ -244,9 +265,12 @@ mod eventing {
 }
 
 pub mod model {
+    use super::super::model::GroupedSitemapContent;
+    use crate::RepositoryError;
     use crate::schema::grouped_sitemap_contents;
     use chrono::{DateTime, Utc};
-    use diesel::Insertable;
+    use diesel::{Insertable, Queryable, Selectable};
+    use shared::retailer::RetailerCode;
     use uuid::Uuid;
 
     #[derive(Insertable)]
@@ -265,14 +289,44 @@ pub mod model {
         pub content_size: i32,
         pub grouped_at: DateTime<Utc>,
     }
+
+    #[derive(Debug, Clone, Queryable, Selectable)]
+    #[diesel(table_name = grouped_sitemap_contents)]
+    pub struct GroupedSitemapContentRecord {
+        pub id: Uuid,
+        pub processed_sitemap_id: Uuid,
+        pub retrieval_id: Uuid,
+        pub retailer_code: String,
+        pub content: serde_json::Value,
+    }
+
+    impl TryFrom<GroupedSitemapContentRecord> for GroupedSitemapContent {
+        type Error = RepositoryError;
+
+        fn try_from(record: GroupedSitemapContentRecord) -> Result<Self, Self::Error> {
+            let retailer_code =
+                RetailerCode::from_str(&record.retailer_code).map_err(RepositoryError::UnknownRetailerCode)?;
+            let links = serde_json::from_value(record.content)?;
+
+            Ok(GroupedSitemapContent {
+                id: record.id,
+                processed_sitemap_id: record.processed_sitemap_id,
+                retrieval_id: record.retrieval_id,
+                retailer_code,
+                links,
+            })
+        }
+    }
 }
 
 pub mod repository {
-    use super::model::NewGroupedSitemapContentRecord;
+    use super::super::model::GroupedSitemapContent;
+    use super::model::{GroupedSitemapContentRecord, NewGroupedSitemapContentRecord};
     use crate::RepositoryError;
     use crate::database::DbPool;
     use crate::schema::grouped_sitemap_contents;
-    use diesel::RunQueryDsl;
+    use diesel::prelude::*;
+    use uuid::Uuid;
 
     pub struct GroupedSitemapContentRepository {
         pool: DbPool,
@@ -291,6 +345,18 @@ pub mod repository {
                 .execute(&mut *connection)?;
 
             Ok(())
+        }
+
+        /// Load a grouped sitemap content record as a domain entity, including its classified links.
+        pub fn load(&self, id: Uuid) -> Result<GroupedSitemapContent, RepositoryError> {
+            let mut connection = self.pool.get()?;
+
+            let record: GroupedSitemapContentRecord = grouped_sitemap_contents::table
+                .find(id)
+                .select(GroupedSitemapContentRecord::as_select())
+                .get_result(&mut *connection)?;
+
+            record.try_into()
         }
     }
 }
