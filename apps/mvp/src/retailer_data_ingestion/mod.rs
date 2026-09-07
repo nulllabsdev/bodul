@@ -7,6 +7,8 @@ use std::fmt;
 use std::io::Read;
 
 use flate2::read::GzDecoder;
+use reqwest::header::{COOKIE, HeaderValue};
+use shared::retailer::RetailerCode;
 
 /// An error fetching a remote resource.
 #[derive(Debug, Clone)]
@@ -42,6 +44,18 @@ impl Client {
     /// always receive plain XML. Detection is by gzip magic bytes, so it works
     /// regardless of the URL suffix or a mislabelled `Content-Type`.
     pub fn get(url: &str) -> Result<String, FetchError> {
+        Self::get_with_cookie(url, None, None)
+    }
+
+    /// Fetches `url` for `retailer`, attaching a configured cookie header when
+    /// the retailer requires an authenticated session.
+    pub fn get_for_retailer(retailer: RetailerCode, url: &str) -> Result<String, FetchError> {
+        let cookie = cookie_for_retailer(retailer)?;
+
+        Self::get_with_cookie(url, cookie.as_deref(), Some(retailer))
+    }
+
+    fn get_with_cookie(url: &str, cookie: Option<&str>, retailer: Option<RetailerCode>) -> Result<String, FetchError> {
         let client = reqwest::blocking::Client::builder()
             .user_agent(USER_AGENT)
             .build()
@@ -49,16 +63,25 @@ impl Client {
                 message: error.to_string(),
             })?;
 
+        let mut request = client.get(url);
+
+        if let Some(cookie) = cookie {
+            let header = HeaderValue::from_str(cookie).map_err(|error| FetchError {
+                message: format!("invalid Cookie header value: {error}"),
+            })?;
+            request = request.header(COOKIE, header);
+        }
+
         // Time just the network fetch (request -> response bytes), excluding decoding.
+        let retailer_slug = retailer.map(|retailer| retailer.slug());
         let start = std::time::Instant::now();
-        let fetched = client
-            .get(url)
+        let fetched = request
             .send()
             .and_then(|response| response.error_for_status())
             .and_then(|response| response.bytes());
         let elapsed_ms = start.elapsed().as_millis() as u64;
         let status = if fetched.is_ok() { "ok" } else { "error" };
-        crate::logging::record_fetch(url, None, elapsed_ms, status);
+        crate::logging::record_fetch(url, retailer_slug.as_deref(), elapsed_ms, status);
 
         let bytes = fetched.map_err(|error| FetchError {
             message: error.to_string(),
@@ -83,6 +106,28 @@ fn decode_body(bytes: &[u8]) -> Result<String, FetchError> {
         // failing the whole fetch.
         Ok(String::from_utf8_lossy(bytes).into_owned())
     }
+}
+
+fn cookie_for_retailer(retailer: RetailerCode) -> Result<Option<String>, FetchError> {
+    cookie_for_retailer_with_lookup(retailer, |key| std::env::var(key))
+}
+
+fn cookie_for_retailer_with_lookup<F>(retailer: RetailerCode, lookup: F) -> Result<Option<String>, FetchError>
+where
+    F: FnOnce(&str) -> Result<String, std::env::VarError>,
+{
+    let Some(env_var) = retailer_sourcing::registry::cookie_env_var(retailer) else {
+        return Ok(None);
+    };
+
+    let cookie = lookup(env_var).map_err(|error| FetchError {
+        message: format!(
+            "{retailer} requires {env_var} to be set with a valid session cookie: {error}",
+            retailer = retailer.as_str()
+        ),
+    })?;
+
+    Ok(Some(cookie))
 }
 
 #[cfg(test)]
