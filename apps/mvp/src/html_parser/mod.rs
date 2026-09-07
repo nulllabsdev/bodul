@@ -34,7 +34,7 @@ pub fn destructure(html: &str, retailer: RetailerCode) -> serde_json::Value {
 pub struct Valueless {
     /// The whole page, blanked.
     pub page: String,
-    /// Each top-level segment's blanked HTML, as `(name, html)`.
+    /// Each lifted top-level segment's blanked HTML, as `(name, html)`.
     pub sections: Vec<(String, String)>,
     /// Each lifted collection item, as `(collection_name, index, html)`.
     pub components: Vec<(String, usize, String)>,
@@ -43,20 +43,24 @@ pub struct Valueless {
 /// Parses `html`, blanks it with `retailer`'s architecture, and returns the page,
 /// each top-level section's HTML, and every lifted collection [`component`].
 ///
-/// Collections are componentized: each item is replaced in the page by a
-/// `[name_index]` placeholder and returned separately.
+/// Top-level segments are lifted: each is replaced in the page by a `[name]`
+/// placeholder and returned separately. Collections are componentized: each item
+/// is replaced in the page by a `[name_index]` placeholder and returned separately.
 pub fn valueless(html: &str, retailer: RetailerCode) -> Result<Valueless, std::io::Error> {
     let document = kuchiki::parse_html().one(html);
     let architecture = architecture_for(retailer);
-    let lifted = blank::apply(&document, &architecture);
+    let blanked = blank::apply(&document, &architecture);
 
     let page = serialize_node(&document)?;
 
     let mut sections = Vec::new();
-    collect_sections(&document, &architecture.structures, &mut sections)?;
+    for section in blanked.sections {
+        let html = serialize_node(&section.node)?;
+        sections.push((section.name, html));
+    }
 
     let mut components = Vec::new();
-    for component in lifted {
+    for component in blanked.components {
         components.push((component.name, component.index, serialize_node(&component.node)?));
     }
 
@@ -65,28 +69,6 @@ pub fn valueless(html: &str, retailer: RetailerCode) -> Result<Valueless, std::i
         sections,
         components,
     })
-}
-
-/// Collects a section file for every [`Segment`] in `structures`, at any depth.
-///
-/// A segment's element is selected relative to `context`, then its own subs are
-/// searched (within the matched element) for further nested segments.
-fn collect_sections(
-    context: &kuchiki::NodeRef,
-    structures: &[Structure],
-    sections: &mut Vec<(String, String)>,
-) -> Result<(), std::io::Error> {
-    for structure in structures {
-        let Structure::Segment(segment) = structure else {
-            continue;
-        };
-        let Ok(matched) = context.select_first(&segment.selector) else {
-            continue;
-        };
-        sections.push((segment.name.clone(), serialize_node(matched.as_node())?));
-        collect_sections(matched.as_node(), &segment.subs, sections)?;
-    }
-    Ok(())
 }
 
 /// Serializes a node (including itself) to an HTML string.

@@ -11,14 +11,25 @@
 //! empty selector targets the context element itself. A named particle names its
 //! placeholders after itself; a nameless one names them after each attribute.
 //!
-//! Collections are "componentized": each matched item is blanked, lifted out of
-//! the page (its place taken by a `[name_index]` text placeholder), and returned
-//! as a [`Component`] so it can be written to its own file. A JSON structure
-//! replaces each matched script's content with a `!name!` placeholder.
+//! Top-level segments and collections are lifted out of the page. A top-level
+//! segment's place is taken by a `[name]` text placeholder and the detached,
+//! blanked node is returned as a [`Section`] so it can be written to its own
+//! file. Collections are "componentized": each matched item is blanked, lifted
+//! out of the page (its place taken by a `[name_index]` text placeholder), and
+//! returned as a [`Component`] so it can be written to its own file. A JSON
+//! structure replaces each matched script's content with a `!name!` placeholder.
 
 use kuchiki::{ElementData, NodeDataRef, NodeRef};
 
 use ::retailer_sourcing::parsing::structure::{RetailerArchitecture, Structure};
+
+/// A top-level segment lifted out of the page during blanking: its `name` and
+/// the detached (blanked) element node. The page keeps a `[name]` placeholder
+/// in its place.
+pub struct Section {
+    pub name: String,
+    pub node: NodeRef,
+}
 
 /// A collection item lifted out of the page during blanking: its collection
 /// `name`, its `index` within that collection, and the detached (blanked)
@@ -29,12 +40,36 @@ pub struct Component {
     pub node: NodeRef,
 }
 
-/// Blanks `node` against `architecture` and returns the lifted collection
-/// [`Component`]s (nested ones first, in document order).
-pub fn apply(node: &NodeRef, architecture: &RetailerArchitecture) -> Vec<Component> {
+/// The detached outputs produced while blanking a page.
+pub struct Blanked {
+    pub sections: Vec<Section>,
+    pub components: Vec<Component>,
+}
+
+/// Blanks `node` against `architecture` and returns the lifted top-level
+/// [`Section`]s and collection [`Component`]s.
+pub fn apply(node: &NodeRef, architecture: &RetailerArchitecture) -> Blanked {
+    let mut sections = Vec::new();
     let mut components = Vec::new();
-    blank_all(node, &architecture.structures, &mut components);
-    components
+    for structure in &architecture.structures {
+        match structure {
+            Structure::Segment(segment) => {
+                let Some(matched) = select_one(node, &segment.selector) else {
+                    continue;
+                };
+                let segment_node = matched.as_node().clone();
+                blank_all(&segment_node, &segment.subs, &mut components);
+                segment_node.insert_before(NodeRef::new_text(format!("[{}]", segment.name)));
+                segment_node.detach();
+                sections.push(Section {
+                    name: segment.name.clone(),
+                    node: segment_node,
+                });
+            }
+            _ => blank_one(node, structure, &mut components),
+        }
+    }
+    Blanked { sections, components }
 }
 
 /// Blanks each structure relative to `context`.
@@ -175,13 +210,14 @@ mod tests {
         serialize(&document)
     }
 
-    /// Blanks `html` and returns the page plus each lifted component's HTML.
-    fn blank_components(architecture: &RetailerArchitecture, html: &str) -> (String, Vec<String>) {
+    /// Blanks `html` and returns the page plus each lifted section/component's HTML.
+    fn blank_outputs(architecture: &RetailerArchitecture, html: &str) -> (String, Vec<String>, Vec<String>) {
         let document = kuchiki::parse_html().one(html);
-        let components = apply(&document, architecture);
+        let blanked = apply(&document, architecture);
         let page = serialize(&document);
-        let component_html = components.iter().map(|c| serialize(&c.node)).collect();
-        (page, component_html)
+        let section_html = blanked.sections.iter().map(|s| serialize(&s.node)).collect();
+        let component_html = blanked.components.iter().map(|c| serialize(&c.node)).collect();
+        (page, section_html, component_html)
     }
 
     fn serialize(node: &kuchiki::NodeRef) -> String {
@@ -203,10 +239,13 @@ mod tests {
         )]);
         let html = r#"<html><head><meta property="og:title" content="Mouse Pad"></head><body></body></html>"#;
 
-        let blanked = blanked_html(&architecture, html);
+        // `head` is a top-level segment, so it is lifted out of the page.
+        let (page, sections, _components) = blank_outputs(&architecture, html);
 
-        assert!(blanked.contains(r#"content="_name_""#), "got: {blanked}");
-        assert!(!blanked.contains("Mouse Pad"));
+        assert!(page.contains("[product]"), "got: {page}");
+        assert_eq!(sections.len(), 1);
+        assert!(sections[0].contains(r#"content="_name_""#), "got: {sections:?}");
+        assert!(!sections[0].contains("Mouse Pad"), "got: {sections:?}");
     }
 
     #[test]
@@ -223,12 +262,30 @@ mod tests {
         )]);
         let html = r#"<html><head><meta property="og:title" content="Mouse Pad"></head><body></body></html>"#;
 
-        let blanked = blanked_html(&architecture, html);
+        // `head` is a top-level segment, so it is lifted out of the page.
+        let (_page, sections, _components) = blank_outputs(&architecture, html);
 
         // content is blanked to `::`; the named `property` still gets a placeholder.
-        assert!(blanked.contains(r#"content="::""#), "got: {blanked}");
-        assert!(blanked.contains(r#"property="_name_""#), "got: {blanked}");
-        assert!(!blanked.contains("Mouse Pad"));
+        assert_eq!(sections.len(), 1);
+        assert!(sections[0].contains(r#"content="::""#), "got: {sections:?}");
+        assert!(sections[0].contains(r#"property="_name_""#), "got: {sections:?}");
+        assert!(!sections[0].contains("Mouse Pad"), "got: {sections:?}");
+    }
+
+    #[test]
+    fn scrub_can_remove_an_attribute_entirely() {
+        let architecture =
+            RetailerArchitecture::new(vec![segment("body", "product", vec![scrub("script[nonce]", "!nonce")])]);
+        let html = r#"<html><body><script nonce="abc" src="/app.js"></script></body></html>"#;
+
+        let (_page, sections, _components) = blank_outputs(&architecture, html);
+
+        assert_eq!(sections.len(), 1);
+        assert!(
+            sections[0].contains(r#"<script src="/app.js"></script>"#),
+            "got: {sections:?}"
+        );
+        assert!(!sections[0].contains("nonce="), "got: {sections:?}");
     }
 
     #[test]
@@ -252,7 +309,7 @@ mod tests {
             <meta property="og:title" content="Mouse Pad">
             <meta property="og:url" content="/p/1"></head><body></body></html>"#;
 
-        let (page, components) = blank_components(&architecture, html);
+        let (page, _sections, components) = blank_outputs(&architecture, html);
 
         // Each item is replaced by a numbered placeholder and lifted out.
         assert!(page.contains("[metas_0]") && page.contains("[metas_1]"), "got: {page}");
@@ -275,17 +332,6 @@ mod tests {
         assert!(!blanked.contains("<!--"), "got: {blanked}");
         assert!(!blanked.contains("<style"), "got: {blanked}");
         assert!(blanked.contains("<h1>Hi</h1>"), "got: {blanked}");
-    }
-
-    #[test]
-    fn scrub_can_remove_an_attribute_entirely() {
-        let architecture = RetailerArchitecture::new(vec![scrub("script[nonce]", "!nonce")]);
-        let html = r#"<html><body><script nonce="abc" src="/app.js"></script></body></html>"#;
-
-        let blanked = blanked_html(&architecture, html);
-
-        assert!(blanked.contains(r#"<script src="/app.js"></script>"#), "got: {blanked}");
-        assert!(!blanked.contains("nonce="), "got: {blanked}");
     }
 
     #[test]
@@ -318,7 +364,7 @@ mod tests {
             <li class="review"><span>Great</span></li>
             <li class="review"><span>Fast</span></li></ul></body></html>"#;
 
-        let (page, components) = blank_components(&architecture, html);
+        let (page, _sections, components) = blank_outputs(&architecture, html);
 
         assert!(
             page.contains("[reviews_0]") && page.contains("[reviews_1]"),
@@ -330,5 +376,23 @@ mod tests {
             components.iter().all(|c| c.contains("<span>_body_</span>")),
             "got: {components:?}"
         );
+    }
+
+    #[test]
+    fn lifts_top_level_segments_into_sections() {
+        let architecture = RetailerArchitecture::new(vec![segment(
+            "section.hero",
+            "hero",
+            vec![particle("h1", "heading", vec![("", "value")])],
+        )]);
+        let html = r#"<html><body><section class="hero"><h1>Hello</h1></section><p>Body</p></body></html>"#;
+
+        let (page, sections, components) = blank_outputs(&architecture, html);
+
+        assert!(page.contains("[hero]"), "got: {page}");
+        assert!(!page.contains(r#"<section class="hero">"#), "got: {page}");
+        assert_eq!(sections.len(), 1);
+        assert!(sections[0].contains(r#"<section class="hero"><h1>_heading_</h1></section>"#));
+        assert!(components.is_empty(), "got: {components:?}");
     }
 }
