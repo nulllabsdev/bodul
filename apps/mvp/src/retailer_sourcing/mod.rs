@@ -4,4 +4,3 @@
 //! pipeline (roadmap Stage A). Triggered manually in Phase 0.
 
 pub mod model;
-pub mod retailers;
