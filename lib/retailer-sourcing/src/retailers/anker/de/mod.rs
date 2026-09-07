@@ -1,6 +1,8 @@
 //! Anker Germany sourcing configuration.
 
-pub mod catalog_offers;
-pub mod offer_details;
-pub mod sitemap;
-pub mod urls;
+pub mod prelude;
+
+mod catalog_offers;
+mod offer_details;
+mod sitemap;
+mod urls;

@@ -1,2 +1,4 @@
-pub mod offer_details;
-pub mod sitemap;
+pub mod prelude;
+
+mod offer_details;
+mod sitemap;
