@@ -1,3 +1,4 @@
+pub mod architecture_v1;
 pub mod au;
 pub mod ca;
 pub mod de;

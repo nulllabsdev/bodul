@@ -1,1 +1,2 @@
-//! Version 1 offer detail sourcing.
+//! Version 1 offer detail contract for UGREEN Germany.
+pub mod architecture;

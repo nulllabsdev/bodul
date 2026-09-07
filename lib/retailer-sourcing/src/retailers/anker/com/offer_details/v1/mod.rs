@@ -1,1 +1,1 @@
-//! Version 1 offer detail sourcing.
+pub mod architecture;

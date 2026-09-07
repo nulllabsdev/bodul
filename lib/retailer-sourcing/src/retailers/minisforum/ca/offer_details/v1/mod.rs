@@ -1,1 +1,4 @@
-//! Version 1 offer detail sourcing.
+//! Version 1 offer detail contract for Minisforum Canada.
+
+
+pub mod architecture;
