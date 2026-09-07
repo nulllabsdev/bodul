@@ -14,7 +14,9 @@ pub(crate) const ROOT_SITEMAP_SOURCE: &str = "main";
 pub(crate) const MAX_SITEMAP_DEPTH: usize = 32;
 
 pub mod io {
+    pub use super::grouping::GroupedLinks;
     pub use super::grouping::io::GroupedSitemapContentRepository;
+    pub use super::model::ProcessedSitemap;
     pub use super::model::RetrievalStatusConversionError;
     pub use super::processing::io::ProcessedSitemapRepository;
 

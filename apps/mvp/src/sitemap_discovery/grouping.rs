@@ -130,7 +130,7 @@ mod grouping {
     }
 }
 
-pub(crate) use grouping::GroupedLinks;
+pub use grouping::GroupedLinks;
 
 mod handler {
     use super::super::model::{GroupedSitemapContent, ProcessedSitemap};

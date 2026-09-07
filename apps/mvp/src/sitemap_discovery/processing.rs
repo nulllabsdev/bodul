@@ -357,5 +357,15 @@ mod repository {
 
             record.try_into()
         }
+
+        pub fn load_all(&self) -> Result<Vec<ProcessedSitemap>, RepositoryError> {
+            let mut connection = self.pool.get()?;
+
+            let records: Vec<ProcessedSitemapRecord> = processed_sitemaps::table
+                .select(ProcessedSitemapRecord::as_select())
+                .load(&mut *connection)?;
+
+            records.into_iter().map(TryInto::try_into).collect()
+        }
     }
 }
