@@ -9,24 +9,23 @@ pub fn sitemap_config() -> SitemapConfig {
 }
 
 pub fn classify_link(url: &str, source: &str, _image_count: usize) -> LinkKind {
-    if let Some(kind) = classify_by_source(source) {
-        return kind;
-    }
-    from_location(url)
+    from_location(url, source)
 }
 
-fn classify_by_source(source: &str) -> Option<LinkKind> {
-    match source {
+pub fn from_location(url: &str, source: &str) -> LinkKind {
+    let matced_by_source = match source {
         "https://www.ankernordics.com/sitemap-0.xml" => Some(LinkKind::NotInterested),
         "https://www.ankernordics.com/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
         "https://www.ankernordics.com/server-sitemap-index-products.xml" => Some(LinkKind::Product),
         "https://www.ankernordics.com/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
         "https://www.ankernordics.com/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
         _ => None,
-    }
-}
+    };
 
-pub fn from_location(url: &str) -> LinkKind {
+    if let Some(y) = matced_by_source {
+        return y;
+    }
+
     anker_from_location(&url)
 }
 

@@ -4,33 +4,35 @@ use shared::link::LinkKind;
 
 pub fn sitemap_config() -> SitemapConfig {
     SitemapConfig {
-        sitemap_url: vec!["https://www.anker.com/de/sitemap.xml".to_string()],
+        sitemap_url: vec!["https://www.anker.com/sitemap.xml".to_string()],
     }
 }
 
 pub fn classify_link(url: &str, source: &str, _image_count: usize) -> LinkKind {
-    if let Some(kind) = classify_by_source(source) {
-        if !url.to_lowercase().starts_with("https://www.anker.com/de/") {
+    from_location(url, source)
+}
+
+pub fn from_location(url: &str, source: &str) -> LinkKind {
+    let matced_by_source = match source {
+        "https://www.anker.com/sitemap-0.xml" => Some(LinkKind::NotInterested),
+        "https://www.anker.com/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
+        "https://www.anker.com/server-sitemap-index-products.xml" => Some(LinkKind::Product),
+        "https://www.anker.com/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
+        "https://www.anker.com/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
+        _ => None,
+    };
+
+    let path = url.to_lowercase();
+
+    if let Some(y) = matced_by_source {
+        if !path.starts_with("https://www.anker.com/eu-de/") {
             return LinkKind::NotInterested;
         }
-        return kind;
-    }
-    from_location(url)
-}
 
-fn classify_by_source(source: &str) -> Option<LinkKind> {
-    match source {
-        "https://www.anker.com/de/sitemap-0.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/de/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/de/server-sitemap-index-products.xml" => Some(LinkKind::Product),
-        "https://www.anker.com/de/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
-        "https://www.anker.com/de/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
-        _ => None,
+        return y;
     }
-}
 
-pub fn from_location(url: &str) -> LinkKind {
-    anker_from_location(&url.to_lowercase())
+    anker_from_location(&path)
 }
 
 #[cfg(test)]

@@ -9,28 +9,30 @@ pub fn sitemap_config() -> SitemapConfig {
 }
 
 pub fn classify_link(url: &str, source: &str, _image_count: usize) -> LinkKind {
-    if let Some(kind) = classify_by_source(source) {
-        if !url.to_lowercase().starts_with("https://www.anker.com/vn/") {
-            return LinkKind::NotInterested;
-        }
-        return kind;
-    }
-    from_location(url)
+    from_location(url, source)
 }
 
-fn classify_by_source(source: &str) -> Option<LinkKind> {
-    match source {
+pub fn from_location(url: &str, source: &str) -> LinkKind {
+    let matced_by_source = match source {
         "https://www.anker.com/sitemap-0.xml" => Some(LinkKind::NotInterested),
         "https://www.anker.com/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
         "https://www.anker.com/server-sitemap-index-products.xml" => Some(LinkKind::Product),
         "https://www.anker.com/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
         "https://www.anker.com/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
         _ => None,
-    }
-}
+    };
 
-pub fn from_location(url: &str) -> LinkKind {
-    anker_from_location(&url.to_lowercase())
+    let path = url.to_lowercase();
+
+    if let Some(y) = matced_by_source {
+        if !path.starts_with("https://www.anker.com/vn/") {
+            return LinkKind::NotInterested;
+        }
+
+        return y;
+    }
+
+    anker_from_location(&path)
 }
 
 #[cfg(test)]
