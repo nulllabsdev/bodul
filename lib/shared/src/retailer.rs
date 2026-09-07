@@ -107,6 +107,14 @@ pub const RETAILERS: &[(&str, RetailerCode)] = &[
     ("AnkerVn", RetailerCode::AnkerVn),
 ];
 
+/// Resolves a stored retailer directory name to its registered code.
+///
+/// Directory names on disk are lowercase slugs, so this is case-insensitive and
+/// delegates to the slug table rather than the CamelCase `RETAILERS` names.
+pub fn code_for_name(name: &str) -> Option<RetailerCode> {
+    RetailerCode::from_str(&name.to_lowercase()).ok()
+}
+
 #[derive(Debug, PartialEq)]
 pub struct RetailerCodeConversionError(String);
 
@@ -265,6 +273,14 @@ impl RetailerCode {
 }
 #[cfg(test)]
 mod tests {
+    use super::code_for_name;
+
+    #[test]
+    fn resolves_a_code_from_a_lowercase_directory_name() {
+        assert_eq!(code_for_name("ankercom"), Some(RetailerCode::AnkerCom));
+        assert_eq!(code_for_name("AnkerCom"), Some(RetailerCode::AnkerCom));
+        assert_eq!(code_for_name("not-a-retailer"), None);
+    }
     use super::{RetailerCode, RetailerCodeConversionError};
 
     #[test]
