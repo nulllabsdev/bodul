@@ -536,7 +536,7 @@ mod fetching {
     use super::super::MAX_SITEMAP_DEPTH;
     use crate::lib_sitemap::io::RawSitemapDocument;
     use crate::retailer_data_ingestion::{Client, FetchError};
-    use crate::retailer_sourcing::sitemap_config;
+    use ::retailer_sourcing::registry::sitemap_config;
     use crate::sitemap_discovery::io::{ChildRef, Parsed, parse};
     use crate::sitemap_discovery::model::SitemapError;
     use chrono::{DateTime, Utc};

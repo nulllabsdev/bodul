@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use mvp::lib_sitemap::io::SitemapDocument;
-use mvp::retailer_sourcing::classify_link;
+use ::retailer_sourcing::registry::classify_link;
 use serde::Serialize;
 use shared::link::LinkKind;
 use shared::retailer::RetailerCode;

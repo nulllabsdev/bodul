@@ -5,7 +5,7 @@ use std::error::Error;
 use kernel::io::NewCommandMetadata;
 use mvp::assembly::boot;
 use mvp::assembly::io::{AppCommand, NewCommandEnvelope};
-use mvp::retailer_sourcing::sitemap_config;
+use ::retailer_sourcing::registry::sitemap_config;
 use mvp::sitemap_discovery::io::RequestSitemapRetrieval;
 use shared::retailer::RetailerCode;
 use uuid::Uuid;

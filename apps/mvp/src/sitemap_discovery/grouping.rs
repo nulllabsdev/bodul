@@ -52,7 +52,7 @@ mod grouping {
     use shared::retailer::RetailerCode;
 
     use crate::lib_sitemap::io::SitemapDocument;
-    use crate::retailer_sourcing::classify_link;
+    use ::retailer_sourcing::registry::classify_link;
 
     #[derive(Debug, Default, Serialize)]
     pub struct GroupedLinks {
