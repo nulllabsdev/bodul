@@ -12,9 +12,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use mvp::offer_processing::{
-    minisforum_au, minisforum_ca, minisforum_eu, minisforum_fr, minisforum_hk, minisforum_jp, minisforum_kr,
-    minisforum_ru, minisforum_uk, minisforum_us,
+use ::retailer_sourcing::retailers::minisforum::{
+    au as minisforumau, ca as minisforumca, eu as minisforumeu, fr as minisforumfr, hk as minisforumhk,
+    jp as minisforumjp, kr as minisforumkr, ru as minisforumru, uk as minisforumuk, us as minisforumus,
 };
 
 fn main() {
@@ -101,62 +101,62 @@ fn process_file(path: &Path, output_dir: &Path, retailer: &str) -> Result<PathBu
         "MinisForumAu" => process_typed!(
             &raw,
             path,
-            minisforum_au::MinisForumAuDestructuredProduct,
-            minisforum_au::MinisForumAuProcessedProduct
+            minisforumau::prelude::MinisForumAuDestructuredProduct,
+            minisforumau::prelude::MinisForumAuProcessedProduct
         ),
         "MinisForumCa" => process_typed!(
             &raw,
             path,
-            minisforum_ca::MinisForumCaDestructuredProduct,
-            minisforum_ca::MinisForumCaProcessedProduct
+            minisforumca::prelude::MinisForumCaDestructuredProduct,
+            minisforumca::prelude::MinisForumCaProcessedProduct
         ),
         "MinisForumEu" => process_typed!(
             &raw,
             path,
-            minisforum_eu::MinisForumEuDestructuredProduct,
-            minisforum_eu::MinisForumEuProcessedProduct
+            minisforumeu::prelude::MinisForumEuDestructuredProduct,
+            minisforumeu::prelude::MinisForumEuProcessedProduct
         ),
         "MinisForumFr" => process_typed!(
             &raw,
             path,
-            minisforum_fr::MinisForumFrDestructuredProduct,
-            minisforum_fr::MinisForumFrProcessedProduct
+            minisforumfr::prelude::MinisForumFrDestructuredProduct,
+            minisforumfr::prelude::MinisForumFrProcessedProduct
         ),
         "MinisForumHk" => process_typed!(
             &raw,
             path,
-            minisforum_hk::MinisForumHkDestructuredProduct,
-            minisforum_hk::MinisForumHkProcessedProduct
+            minisforumhk::prelude::MinisForumHkDestructuredProduct,
+            minisforumhk::prelude::MinisForumHkProcessedProduct
         ),
         "MinisForumJp" => process_typed!(
             &raw,
             path,
-            minisforum_jp::MinisForumJpDestructuredProduct,
-            minisforum_jp::MinisForumJpProcessedProduct
+            minisforumjp::prelude::MinisForumJpDestructuredProduct,
+            minisforumjp::prelude::MinisForumJpProcessedProduct
         ),
         "MinisForumKr" => process_typed!(
             &raw,
             path,
-            minisforum_kr::MinisForumKrDestructuredProduct,
-            minisforum_kr::MinisForumKrProcessedProduct
+            minisforumkr::prelude::MinisForumKrDestructuredProduct,
+            minisforumkr::prelude::MinisForumKrProcessedProduct
         ),
         "MinisForumRu" => process_typed!(
             &raw,
             path,
-            minisforum_ru::MinisForumRuDestructuredProduct,
-            minisforum_ru::MinisForumRuProcessedProduct
+            minisforumru::prelude::MinisForumRuDestructuredProduct,
+            minisforumru::prelude::MinisForumRuProcessedProduct
         ),
         "MinisForumUk" => process_typed!(
             &raw,
             path,
-            minisforum_uk::MinisForumUkDestructuredProduct,
-            minisforum_uk::MinisForumUkProcessedProduct
+            minisforumuk::prelude::MinisForumUkDestructuredProduct,
+            minisforumuk::prelude::MinisForumUkProcessedProduct
         ),
         "MinisForumUs" => process_typed!(
             &raw,
             path,
-            minisforum_us::MinisForumUsDestructuredProduct,
-            minisforum_us::MinisForumUsProcessedProduct
+            minisforumus::prelude::MinisForumUsDestructuredProduct,
+            minisforumus::prelude::MinisForumUsProcessedProduct
         ),
         _ => {
             let value: serde_json::Value =

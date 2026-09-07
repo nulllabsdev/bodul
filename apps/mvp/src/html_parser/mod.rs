@@ -1,7 +1,7 @@
 //! HTML parsing.
 //!
 //! Extracts product and offer fields from stored product-page HTML using
-//! retailer-specific rules (roadmap Stage E). Consumed by `offer_processing`.
+//! retailer-specific rules (roadmap Stage E). Consumed by `process_products`.
 //!
 //! Each retailer defines a [`RetailerArchitecture`] — a tree of [`Structure`]
 //! definitions built with [`structure::particle`], [`structure::collection`] and

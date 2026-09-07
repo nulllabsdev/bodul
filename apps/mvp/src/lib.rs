@@ -34,10 +34,11 @@ pub mod sitemap_discovery;
 // Stage D — offer page fetching
 pub mod offer_discovery;
 
-// Stage E — offer page processing
+// Stage E — offer page processing (typed models now live in
+// `retailer-sourcing`'s per-retailer `offer_details::v1` modules)
 pub mod offer_processing;
 
-// Stage E — retailer-specific HTML parsing (used by offer_processing)
+// Stage E — retailer-specific HTML parsing
 pub mod html_parser;
 
 // Stage G — product inventory (write side)

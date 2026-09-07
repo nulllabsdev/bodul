@@ -4,16 +4,17 @@
 | ------- | --------------------------------------------------------------- |
 | Status  | Draft                                                           |
 | Version | 0.1.0                                                           |
-| Scope   | `apps/mvp` module `offer_processing` (all 10 MinisForum stores) |
+| Scope   | `lib/retailer-sourcing` `offer_details::v1` modules (all 10 MinisForum stores) |
 | Roadmap | Stage E                                                         |
 
 Maps a destructured MinisForum AU product page (the output of the `destructure`
 binary, see `TS001_html-parser.md`) into a typed, normalized **processed
 product**. Driven by the `process_products` binary.
 
-Layout: `src/offer_processing/minisforum_au/` is a folder module with
+Layout: `retailers/minisforum/au/offer_details/v1/` is a folder module with
 `destructured.rs` (a strict typed mirror of the destructure JSON) and
-`processed.rs` (our own shape). All types are prefixed `MinisForumAu`.
+`processed.rs` (our own shape), exposed to consumers via that region's
+`prelude`. All types are prefixed `MinisForumAu`.
 
 ## Scope
 
@@ -115,7 +116,7 @@ regression.
 
 ## All 10 retailers (implemented)
 
-Every store now has its own `offer_processing/minisforum_{xx}/` module (strict
+Every store now has its own `retailers/minisforum/{xx}/offer_details/v1/` module (strict
 `destructured.rs` + adapted `processed.rs`, self-contained duplicated helpers),
 wired into `process_products` via a per-retailer dispatch. `lib/money` gained
 `GBP`, `JPY`, `KRW`, `HKD` to cover all stores.
@@ -145,7 +146,7 @@ files).
 ## Applying to a further retailer
 
 This AU model is the template; each store becomes a sibling module (e.g.
-`offer_processing/minisforum_ca/`). What varies per retailer (per the
+`retailers/minisforum/ca/offer_details/v1/`). What varies per retailer (per the
 html_parser architecture):
 
 - **currency** and **locale** — make per-retailer rather than hardcoding
