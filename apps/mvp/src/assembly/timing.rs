@@ -22,6 +22,7 @@ use shared::retailer::RetailerCode;
 use uuid::Uuid;
 
 use crate::assembly::io::MvpEvent;
+use crate::offer_discovery::io::DownloadOfferPage;
 use crate::sitemap_discovery::io::{GroupSitemapContent, ProcessSitemap, RequestSitemapRetrieval};
 
 /// A command whose processing time can be logged: exposes its domain id and, when
@@ -51,6 +52,15 @@ impl TimedCommand for ProcessSitemap {
 impl TimedCommand for GroupSitemapContent {
     fn timing_id(&self) -> Uuid {
         self.processed_sitemap_id
+    }
+}
+
+impl TimedCommand for DownloadOfferPage {
+    fn timing_id(&self) -> Uuid {
+        self.grouped_content_id
+    }
+    fn timing_retailer(&self) -> Option<RetailerCode> {
+        Some(self.retailer_code)
     }
 }
 
@@ -129,6 +139,8 @@ fn retailer_of(payload: &str) -> Option<RetailerCode> {
         MvpEvent::SitemapRetrieved(event) => Some(event.retailer_code),
         MvpEvent::SitemapProcessed(event) => Some(event.retailer_code),
         MvpEvent::SitemapContentGrouped(event) => Some(event.retailer_code),
+        MvpEvent::OfferPageWasDownloaded(event) => Some(event.retailer_code),
+        MvpEvent::OfferPageDownloadSkipped(event) => Some(event.retailer_code),
     }
 }
 

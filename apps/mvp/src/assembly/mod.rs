@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::database;
 use crate::database::{DatabaseConfig, DbPool};
+use crate::offer_discovery::io::{DownloadOfferPage, OfferPageDownloadSkipped, OfferPageWasDownloaded};
 use crate::sitemap_discovery::io::ProcessedSitemapRepository;
 use crate::sitemap_discovery::io::SitemapRetrievalRepository;
 use crate::sitemap_discovery::io::{
@@ -109,6 +110,7 @@ pub enum AppCommand {
     RequestSitemapRetrieval(RequestSitemapRetrieval),
     ProcessSitemap(ProcessSitemap),
     GroupSitemapContent(GroupSitemapContent),
+    DownloadOfferPage(DownloadOfferPage),
 }
 
 impl serde::Serialize for AppCommand {
@@ -117,6 +119,7 @@ impl serde::Serialize for AppCommand {
             Self::RequestSitemapRetrieval(command) => command.serialize(serializer),
             Self::ProcessSitemap(command) => command.serialize(serializer),
             Self::GroupSitemapContent(command) => command.serialize(serializer),
+            Self::DownloadOfferPage(command) => command.serialize(serializer),
         }
     }
 }
@@ -127,6 +130,7 @@ impl ApplicationCommand for AppCommand {
             Self::RequestSitemapRetrieval(command) => command.command_type(),
             Self::ProcessSitemap(command) => command.command_type(),
             Self::GroupSitemapContent(command) => command.command_type(),
+            Self::DownloadOfferPage(command) => command.command_type(),
         }
     }
 }
@@ -137,6 +141,8 @@ pub enum MvpEvent {
     SitemapRetrieved(SitemapRetrieved),
     SitemapProcessed(SitemapProcessed),
     SitemapContentGrouped(SitemapContentGrouped),
+    OfferPageWasDownloaded(OfferPageWasDownloaded),
+    OfferPageDownloadSkipped(OfferPageDownloadSkipped),
 }
 
 impl kernel::ApplicationEvent for MvpEvent {
@@ -145,6 +151,8 @@ impl kernel::ApplicationEvent for MvpEvent {
             Self::SitemapRetrieved(event) => event.event_type(),
             Self::SitemapProcessed(event) => event.event_type(),
             Self::SitemapContentGrouped(event) => event.event_type(),
+            Self::OfferPageWasDownloaded(event) => event.event_type(),
+            Self::OfferPageDownloadSkipped(event) => event.event_type(),
         }
     }
 }
@@ -154,6 +162,9 @@ pub type MulacState = kernel::PersistentKernelState;
 pub type MulacHandle = kernel::PersistentKernelHandle;
 
 pub fn start_mulac(pool: DbPool, drain_rounds: usize) -> Result<MulacHandle, kernel::KernelError> {
+    use crate::offer_discovery::io::{
+        DOWNLOAD_OFFER_PAGE_COMMAND, DownloadOfferPageHandler, OfferRepository, RawOfferRepository,
+    };
     use crate::sitemap_discovery::io::GroupSitemapContentHandler;
     use crate::sitemap_discovery::io::SitemapContentGroupedSubscriber;
     use crate::sitemap_discovery::io::{ProcessSitemapHandler, SitemapProcessedSubscriber};
@@ -198,6 +209,16 @@ pub fn start_mulac(pool: DbPool, drain_rounds: usize) -> Result<MulacHandle, ker
                     SitemapRetrievalRepository::new(pool.clone()),
                     ProcessedSitemapRepository::new(pool.clone()),
                     GroupedSitemapContentRepository::new(pool.clone()),
+                )),
+            ),
+        )
+        .command_handler(
+            DOWNLOAD_OFFER_PAGE_COMMAND,
+            timing::timed_command(
+                DOWNLOAD_OFFER_PAGE_COMMAND,
+                Arc::new(DownloadOfferPageHandler::new(
+                    OfferRepository::new(pool.clone()),
+                    RawOfferRepository::new(pool.clone()),
                 )),
             ),
         )
