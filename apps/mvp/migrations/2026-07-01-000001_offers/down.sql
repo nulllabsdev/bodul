@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS raw_offers;
+DROP TABLE IF EXISTS offers;

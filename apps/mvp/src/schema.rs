@@ -71,6 +71,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    offers (id) {
+        id -> Uuid,
+        grouped_content_id -> Uuid,
+        retailer_code -> Text,
+        url -> Text,
+        status -> Text,
+        notes -> Nullable<Text>,
+        discovered_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     outbox_entries (id) {
         id -> Uuid,
         status -> Int4,
@@ -97,6 +109,17 @@ diesel::table! {
         url_count -> Int4,
         processed_at -> Timestamptz,
         document_size -> Int4,
+    }
+}
+
+diesel::table! {
+    raw_offers (id) {
+        id -> Uuid,
+        offer_id -> Uuid,
+        url -> Text,
+        body -> Text,
+        body_size -> Int4,
+        fetched_at -> Timestamptz,
     }
 }
 
@@ -135,8 +158,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     event_entries,
     grouped_sitemap_contents,
     inbox_entries,
+    offers,
     outbox_entries,
     processed_sitemaps,
+    raw_offers,
     raw_sitemap_documents,
     sitemap_retrievals,
 );
