@@ -1,1 +1,1 @@
-//! Retailer URL handling.
+//! URL contracts for micom.

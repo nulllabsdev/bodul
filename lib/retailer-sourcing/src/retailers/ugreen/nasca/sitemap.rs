@@ -1,1 +1,54 @@
-//! Sitemap sourcing.
+use crate::retailers::shopify::shopify_from_location;
+use shared::SitemapConfig;
+use shared::link::LinkKind;
+
+pub fn sitemap_config() -> SitemapConfig {
+    SitemapConfig {
+        sitemap_url: vec!["https://nas-ca.ugreen.com/sitemap.xml".to_string()],
+    }
+}
+
+pub fn classify_link(url: &str, _source: &str, _image_count: usize) -> LinkKind {
+    from_location(url)
+}
+
+pub fn from_location(url: &str) -> LinkKind {
+    shopify_from_location(url)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classifies_fixture_urls() {
+        let cases = [
+            (
+                "https://nas-ca.ugreen.com/products/ugreen-nasync-dxp4800-pro-136tb-4-bay-nas",
+                LinkKind::Product,
+            ),
+            ("https://nas-ca.ugreen.com/collections/compare", LinkKind::Catalog),
+            ("https://nas-ca.ugreen.com/blogs/knowledge", LinkKind::Content),
+            ("https://nas-ca.ugreen.com/agents.md", LinkKind::Unknown),
+        ];
+
+        for (url, expected) in cases {
+            assert_eq!(from_location(url), expected, "for {url}");
+        }
+    }
+
+    #[test]
+    fn classifies_numeric_and_root_fixture_urls() {
+        let cases = [
+            (
+                "https://nas-ca.ugreen.com/pages/4-bay-nas-home-storage-ugreen-dxp4800-plus",
+                LinkKind::Content,
+            ),
+            ("https://nas-ca.ugreen.com/", LinkKind::Unknown),
+        ];
+
+        for (url, expected) in cases {
+            assert_eq!(from_location(url), expected, "for {url}");
+        }
+    }
+}

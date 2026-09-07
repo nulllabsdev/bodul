@@ -1,3 +1,5 @@
+//! micom retailer sourcing configuration.
+
 pub mod catalog_offers;
 pub mod offer_details;
 pub mod sitemap;

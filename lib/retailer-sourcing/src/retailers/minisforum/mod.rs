@@ -1,5 +1,6 @@
 pub mod au;
 pub mod ca;
+pub mod de;
 pub mod eu;
 pub mod fr;
 pub mod hk;

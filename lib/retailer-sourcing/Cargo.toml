@@ -5,6 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
+shared = { path = "../shared" }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
