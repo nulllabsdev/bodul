@@ -45,6 +45,8 @@ async fn readyz(Data(state): Data<&AppState>) -> Response {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let addr = std::env::var("BODUL_SERVER_ADDR").unwrap_or_else(|_| DEFAULT_ADDR.to_string());
     let database_config = database::DatabaseConfig::from_env();
     let pool = database::connect(&database_config)?;

@@ -33,6 +33,8 @@ pub mod io {
     pub use kernel::io::{run_command_worker, run_event_worker};
 }
 
+mod timing;
+
 pub fn boot() -> Result<MulacHandle, Box<dyn Error>> {
     let database_config = DatabaseConfig::from_env();
     let pool = database::connect(&database_config)?;
@@ -169,37 +171,55 @@ pub fn start_mulac(pool: DbPool, drain_rounds: usize) -> Result<MulacHandle, ker
     kernel::boot(kernel::KernelConfig::default())
         .command_handler(
             REQUEST_SITEMAP_RETRIEVAL_COMMAND,
-            Arc::new(RequestSitemapRetrievalHandler::new(
-                SitemapRetrievalRepository::new(pool.clone()),
-                RawSitemapDocumentRepository::new(pool.clone()),
-            )),
+            timing::timed_command(
+                REQUEST_SITEMAP_RETRIEVAL_COMMAND,
+                Arc::new(RequestSitemapRetrievalHandler::new(
+                    SitemapRetrievalRepository::new(pool.clone()),
+                    RawSitemapDocumentRepository::new(pool.clone()),
+                )),
+            ),
         )
         .command_handler(
             PROCESS_SITEMAP_COMMAND,
-            Arc::new(ProcessSitemapHandler::new(
-                SitemapRetrievalRepository::new(pool.clone()),
-                RawSitemapDocumentRepository::new(pool.clone()),
-                ProcessedSitemapRepository::new(pool.clone()),
-            )),
+            timing::timed_command(
+                PROCESS_SITEMAP_COMMAND,
+                Arc::new(ProcessSitemapHandler::new(
+                    SitemapRetrievalRepository::new(pool.clone()),
+                    RawSitemapDocumentRepository::new(pool.clone()),
+                    ProcessedSitemapRepository::new(pool.clone()),
+                )),
+            ),
         )
         .command_handler(
             GROUP_SITEMAP_CONTENT_COMMAND,
-            Arc::new(GroupSitemapContentHandler::new(
-                SitemapRetrievalRepository::new(pool.clone()),
-                ProcessedSitemapRepository::new(pool.clone()),
-                GroupedSitemapContentRepository::new(pool.clone()),
-            )),
+            timing::timed_command(
+                GROUP_SITEMAP_CONTENT_COMMAND,
+                Arc::new(GroupSitemapContentHandler::new(
+                    SitemapRetrievalRepository::new(pool.clone()),
+                    ProcessedSitemapRepository::new(pool.clone()),
+                    GroupedSitemapContentRepository::new(pool.clone()),
+                )),
+            ),
         )
         .event_subscriber_with_command_gateway(SITEMAP_RETRIEVED_EVENT, "process-sitemap", |command_gateway| {
-            Arc::new(SitemapRetrievedSubscriber::new(command_gateway)) as Arc<dyn kernel::EventSubscriberPort>
+            timing::timed_event(
+                SITEMAP_RETRIEVED_EVENT,
+                Arc::new(SitemapRetrievedSubscriber::new(command_gateway)) as Arc<dyn kernel::EventSubscriberPort>,
+            )
         })
         .event_subscriber_with_command_gateway(SITEMAP_PROCESSED_EVENT, "group-sitemap-content", |command_gateway| {
-            Arc::new(SitemapProcessedSubscriber::new(command_gateway)) as Arc<dyn kernel::EventSubscriberPort>
+            timing::timed_event(
+                SITEMAP_PROCESSED_EVENT,
+                Arc::new(SitemapProcessedSubscriber::new(command_gateway)) as Arc<dyn kernel::EventSubscriberPort>,
+            )
         })
         .event_subscriber(
             SITEMAP_CONTENT_GROUPED_EVENT,
             "sitemap-content-grouped-terminal",
-            Arc::new(SitemapContentGroupedSubscriber) as Arc<dyn kernel::EventSubscriberPort>,
+            timing::timed_event(
+                SITEMAP_CONTENT_GROUPED_EVENT,
+                Arc::new(SitemapContentGroupedSubscriber) as Arc<dyn kernel::EventSubscriberPort>,
+            ),
         )
         .start_persistent(pool, drain_rounds)
 }

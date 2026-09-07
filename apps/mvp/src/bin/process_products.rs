@@ -18,13 +18,15 @@ use ::retailer_sourcing::retailers::minisforum::{
 };
 
 fn main() {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let input_root = PathBuf::from("data/pages-destructed");
     let output_root = PathBuf::from("data/pages-processed");
 
     let retailers = match fs::read_dir(&input_root) {
         Ok(entries) => entries,
         Err(error) => {
-            eprintln!("error reading {}/: {error}", input_root.display());
+            tracing::error!("error reading {}/: {error}", input_root.display());
             std::process::exit(1);
         }
     };
@@ -42,14 +44,14 @@ fn main() {
         let output_dir = output_root.join(retailer.file_name());
 
         if let Err(error) = fs::create_dir_all(&output_dir) {
-            eprintln!("error creating {}: {error}", output_dir.display());
+            tracing::error!("error creating {}: {error}", output_dir.display());
             std::process::exit(1);
         }
 
         let entries = match fs::read_dir(&retailer_dir) {
             Ok(entries) => entries,
             Err(error) => {
-                eprintln!("error reading {}/: {error}", retailer_dir.display());
+                tracing::error!("error reading {}/: {error}", retailer_dir.display());
                 failed += 1;
                 continue;
             }
@@ -67,7 +69,7 @@ fn main() {
                     processed += 1;
                 }
                 Err(error) => {
-                    eprintln!("fail {}: {error}", path.display());
+                    tracing::error!("fail {}: {error}", path.display());
                     failed += 1;
                 }
             }

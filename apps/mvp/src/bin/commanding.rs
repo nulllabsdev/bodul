@@ -15,6 +15,8 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let args = Args::parse();
 
     let batch_size = args.batch_size.get();
@@ -31,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         Err(errors) => {
             for error in &errors {
-                eprintln!("command error: {error}");
+                tracing::error!("command error: {error}");
             }
             Err(format!("{} command errors", errors.len()).into())
         }

@@ -49,14 +49,20 @@ impl Client {
                 message: error.to_string(),
             })?;
 
-        let bytes = client
+        // Time just the network fetch (request -> response bytes), excluding decoding.
+        let start = std::time::Instant::now();
+        let fetched = client
             .get(url)
             .send()
             .and_then(|response| response.error_for_status())
-            .and_then(|response| response.bytes())
-            .map_err(|error| FetchError {
-                message: error.to_string(),
-            })?;
+            .and_then(|response| response.bytes());
+        let elapsed_ms = start.elapsed().as_millis() as u64;
+        let status = if fetched.is_ok() { "ok" } else { "error" };
+        crate::logging::record_fetch(url, None, elapsed_ms, status);
+
+        let bytes = fetched.map_err(|error| FetchError {
+            message: error.to_string(),
+        })?;
 
         decode_body(&bytes)
     }

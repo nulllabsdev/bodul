@@ -28,6 +28,9 @@ pub mod retailer_sourcing;
 // Application assembly and Mulac wiring
 pub mod assembly;
 
+// File-based logging setup shared by the binaries
+pub mod logging;
+
 // Stage B/C — sitemap fetching and processing
 pub mod sitemap_discovery;
 

@@ -111,6 +111,8 @@ fn fmt_mb(n: i64) -> String {
 }
 
 fn main() {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let config = DatabaseConfig::from_env();
     let pool = connect(&config).expect("DB pool");
     let mut conn = pool.get().expect("DB connection");

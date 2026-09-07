@@ -37,25 +37,27 @@ struct Detection {
 }
 
 fn main() {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let sourcedir = PathBuf::from("data/processed-sitemaps");
     let data_dir = PathBuf::from("data");
     let out_dir = data_dir.join("detected");
     if let Err(error) = fs::create_dir_all(&out_dir) {
-        eprintln!("error creating {}: {error}", out_dir.display());
+        tracing::error!("error creating {}: {error}", out_dir.display());
         std::process::exit(1);
     }
 
     let mut sources = match sitemap_dumps(&sourcedir) {
         Ok(sources) => sources,
         Err(error) => {
-            eprintln!("error reading {}/: {error}", sourcedir.display());
+            tracing::error!("error reading {}/: {error}", sourcedir.display());
             std::process::exit(1);
         }
     };
     sources.sort();
 
     if sources.is_empty() {
-        eprintln!("no sitemap dumps found in {}/", sourcedir.display());
+        tracing::warn!("no sitemap dumps found in {}/", sourcedir.display());
         std::process::exit(1);
     }
 
@@ -64,7 +66,7 @@ fn main() {
 
     for source in &sources {
         let Some(code) = retailer_for(source) else {
-            eprintln!("skip {}: unrecognized retailer slug", source.display());
+            tracing::warn!("skip {}: unrecognized retailer slug", source.display());
             continue;
         };
         match detect_file(source, code, &out_dir) {
@@ -82,7 +84,7 @@ fn main() {
                 succeeded += 1;
             }
             Err(error) => {
-                eprintln!("fail {}: {error}", source.display());
+                tracing::error!("fail {}: {error}", source.display());
                 failed += 1;
             }
         }

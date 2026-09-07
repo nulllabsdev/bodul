@@ -11,6 +11,8 @@ use shared::retailer::RetailerCode;
 use uuid::Uuid;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let kernel = boot()?;
 
     let state = kernel.state();

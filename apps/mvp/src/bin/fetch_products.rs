@@ -25,6 +25,8 @@ struct Links {
 }
 
 fn main() {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let detected_dir = PathBuf::from("data").join("detected");
     let pages_dir = PathBuf::from("data").join("pages");
 
@@ -34,14 +36,14 @@ fn main() {
     let mut sources = match detection_files(&detected_dir) {
         Ok(sources) => sources,
         Err(error) => {
-            eprintln!("error reading {}/: {error}", detected_dir.display());
+            tracing::error!("error reading {}/: {error}", detected_dir.display());
             std::process::exit(1);
         }
     };
     sources.sort();
 
     if sources.is_empty() {
-        eprintln!("no detection files in {}/", detected_dir.display());
+        tracing::warn!("no detection files in {}/", detected_dir.display());
         std::process::exit(1);
     }
 
@@ -63,14 +65,14 @@ fn main() {
         {
             Ok(detection) => detection,
             Err(error) => {
-                eprintln!("fail {}: {error}", source.display());
+                tracing::error!("fail {}: {error}", source.display());
                 continue;
             }
         };
 
         let dir = pages_dir.join(&retailer);
         if let Err(error) = fs::create_dir_all(&dir) {
-            eprintln!("fail creating {}: {error}", dir.display());
+            tracing::error!("fail creating {}: {error}", dir.display());
             continue;
         }
 
@@ -87,7 +89,7 @@ fn main() {
             }
 
             let Some(filename) = page_filename(url) else {
-                eprintln!("  skip (no path): {url}");
+                tracing::warn!("  skip (no path): {url}");
                 continue;
             };
             let path = dir.join(filename);
@@ -112,12 +114,12 @@ fn main() {
                         }
                     }
                     Err(error) => {
-                        eprintln!("  fail writing {}: {error}", path.display());
+                        tracing::error!("  fail writing {}: {error}", path.display());
                         failed += 1;
                     }
                 },
                 Err(error) => {
-                    eprintln!("  fail {url}: {error}");
+                    tracing::error!("  fail {url}: {error}");
                     failed += 1;
                 }
             }

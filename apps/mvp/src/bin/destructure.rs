@@ -10,6 +10,8 @@ use mvp::html_parser;
 use shared::retailer::{RETAILERS, RetailerCode};
 
 fn main() {
+    dotenvy::dotenv().ok();
+    let _guard = mvp::logging::init();
     let mut processed = 0usize;
     let mut failed = 0usize;
 
@@ -18,14 +20,14 @@ fn main() {
         let output_dir = PathBuf::from("data/pages-destructed").join(retailer);
 
         if let Err(error) = fs::create_dir_all(&output_dir) {
-            eprintln!("error creating {}: {error}", output_dir.display());
+            tracing::error!("error creating {}: {error}", output_dir.display());
             std::process::exit(1);
         }
 
         let entries = match fs::read_dir(&input_dir) {
             Ok(entries) => entries,
             Err(error) => {
-                eprintln!("error reading {}/: {error}", input_dir.display());
+                tracing::error!("error reading {}/: {error}", input_dir.display());
                 std::process::exit(1);
             }
         };
@@ -42,7 +44,7 @@ fn main() {
                     processed += 1;
                 }
                 Err(error) => {
-                    eprintln!("fail {}: {error}", path.display());
+                    tracing::error!("fail {}: {error}", path.display());
                     failed += 1;
                 }
             }
