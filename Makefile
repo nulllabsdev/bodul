@@ -1,4 +1,4 @@
-.PHONY: fmt test check check-strict docker-build docker-up docker-down gomd wip
+.PHONY: fmt test check cargo-fix clippy-fix check-strict docker-build docker-up docker-down gomd wip
 
 fmt:
 	$(MAKE) -C apps/mvp fmt
@@ -17,6 +17,18 @@ check:
 	$(MAKE) -C lib/money check
 	$(MAKE) -C lib/shared check
 	$(MAKE) -C lib/retailer-sourcing check
+
+cargo-fix:
+	cd apps/mvp && cargo fix --tests
+	cd lib/money && cargo fix --tests
+	cd lib/shared && cargo fix --tests
+	cd lib/retailer-sourcing && cargo fix --tests
+
+clippy-fix:
+	cd apps/mvp && cargo clippy --fix --tests
+	cd lib/money && cargo clippy --fix --tests
+	cd lib/shared && cargo clippy --fix --tests
+	cd lib/retailer-sourcing && cargo clippy --fix --tests
 
 check-strict:
 	RUSTFLAGS="-Awarnings" cargo check
