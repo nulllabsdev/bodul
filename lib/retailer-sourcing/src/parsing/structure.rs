@@ -17,7 +17,7 @@
 //!
 //! Build them with the [`particle`], [`collection`], [`segment`], [`trash`] and
 //! [`json`] helpers and collect them into a [`RetailerArchitecture`]. The walker
-//! in [`super::extract`] applies the architecture to a parsed page.
+//! in the application's HTML parser applies the architecture to a parsed page.
 
 /// One value to pull from a matched element.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -110,6 +110,11 @@ pub struct Scrub {
 /// With an `anchor` set (e.g. a JS variable name), the JSON value that follows
 /// the anchor is sliced out of surrounding JavaScript and, if it is an array,
 /// each element yields one object — `paths` then resolve per element.
+///
+/// When `js` is set the sliced text is first normalized from a JavaScript object
+/// literal into JSON (single-quoted strings become double-quoted, and simple
+/// `<number> + "<suffix>"` concatenations such as GA's `0 + '%'` collapse into
+/// one string), so single-quoted `dataLayer` pushes become parseable.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Json {
     /// The CSS selector matching the script(s) to parse.
@@ -121,6 +126,9 @@ pub struct Json {
     pub name: String,
     /// The values to pull: each `key` is a dotted JSON path, `name` the output.
     pub paths: Vec<Attribute>,
+    /// Normalize a JavaScript object literal to JSON before parsing (see above).
+    #[serde(default)]
+    pub js: bool,
 }
 
 /// A [`Particle`] matched by `selector`, named `name`, pulling `attrs` as
@@ -165,6 +173,7 @@ pub fn trash(selector: &str) -> Structure {
 }
 
 /// A [`Scrub`] that blanks `attr` to `::` on every element matched by `selector`.
+/// Prefix `attr` with `!` to remove the attribute entirely instead.
 pub fn scrub(selector: &str, attr: &str) -> Structure {
     Structure::Scrub(Scrub {
         selector: selector.to_string(),
@@ -175,16 +184,23 @@ pub fn scrub(selector: &str, attr: &str) -> Structure {
 /// A [`Json`] that parses `selector`'s content and pulls `paths` as
 /// `(path, name)` pairs, under `name` (empty merges into the parent).
 pub fn json(selector: &str, name: &str, paths: Vec<(&str, &str)>) -> Structure {
-    json_value(selector, "", name, paths)
+    json_value(selector, "", name, paths, false)
 }
 
 /// A [`Json`] that slices the JSON value following `anchor` (a JS variable name)
 /// out of `selector`'s script. An array yields one object per element.
 pub fn json_after(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>) -> Structure {
-    json_value(selector, anchor, name, paths)
+    json_value(selector, anchor, name, paths, false)
 }
 
-fn json_value(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>) -> Structure {
+/// Like [`json_after`], but normalizes a JavaScript object literal (single-quoted
+/// strings, `<number> + "<suffix>"` concatenations) into JSON before parsing, so
+/// single-quoted `dataLayer` pushes can be read.
+pub fn json_js(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>) -> Structure {
+    json_value(selector, anchor, name, paths, true)
+}
+
+fn json_value(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>, js: bool) -> Structure {
     Structure::Json(Json {
         selector: selector.to_string(),
         anchor: anchor.to_string(),
@@ -196,6 +212,7 @@ fn json_value(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>
                 name: name.to_string(),
             })
             .collect(),
+        js,
     })
 }
 
