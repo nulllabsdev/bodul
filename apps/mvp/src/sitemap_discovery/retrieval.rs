@@ -375,7 +375,7 @@ mod infra_sitemap_retrieval_repository {
             let updated = diesel::update(
                 sitemap_retrievals::table
                     .find(retrieval_id)
-                    .filter(status.eq(RetrievalStatus::Requested.as_str())),
+                    .filter(status.eq_any([RetrievalStatus::Requested.as_str(), RetrievalStatus::Failed.as_str()])),
             )
             .set((
                 status.eq(RetrievalStatus::Retrieved.as_str()),
@@ -390,18 +390,15 @@ mod infra_sitemap_retrieval_repository {
         pub fn mark_failed(&self, retrieval_id: Uuid, error: &str) -> Result<(), RepositoryError> {
             let mut connection = self.pool.get()?;
 
-            let updated = diesel::update(
-                sitemap_retrievals::table
-                    .find(retrieval_id)
-                    .filter(status.eq(RetrievalStatus::Requested.as_str())),
-            )
-            .set((
-                status.eq(RetrievalStatus::Failed.as_str()),
-                sitemap_retrievals::columns::error.eq(error),
-            ))
-            .execute(&mut *connection)?;
+            // A retrieval can fail at any stage, so this is not filtered on status.
+            let updated = diesel::update(sitemap_retrievals::table.find(retrieval_id))
+                .set((
+                    status.eq(RetrievalStatus::Failed.as_str()),
+                    sitemap_retrievals::columns::error.eq(error),
+                ))
+                .execute(&mut *connection)?;
 
-            Self::ensure_transitioned(retrieval_id, RetrievalStatus::Requested, updated)
+            Self::ensure_exists(retrieval_id, updated)
         }
 
         pub fn mark_processed(&self, retrieval_id: Uuid) -> Result<(), RepositoryError> {
@@ -409,7 +406,7 @@ mod infra_sitemap_retrieval_repository {
             let updated = diesel::update(
                 sitemap_retrievals::table
                     .find(retrieval_id)
-                    .filter(status.eq(RetrievalStatus::Retrieved.as_str())),
+                    .filter(status.eq_any([RetrievalStatus::Retrieved.as_str(), RetrievalStatus::Failed.as_str()])),
             )
             .set((
                 status.eq(RetrievalStatus::Processed.as_str()),
@@ -426,7 +423,7 @@ mod infra_sitemap_retrieval_repository {
             let updated = diesel::update(
                 sitemap_retrievals::table
                     .find(retrieval_id)
-                    .filter(status.eq(RetrievalStatus::Processed.as_str())),
+                    .filter(status.eq_any([RetrievalStatus::Processed.as_str(), RetrievalStatus::Failed.as_str()])),
             )
             .set((
                 status.eq(RetrievalStatus::Grouped.as_str()),
@@ -436,6 +433,16 @@ mod infra_sitemap_retrieval_repository {
             .execute(&mut *connection)?;
 
             Self::ensure_transitioned(retrieval_id, RetrievalStatus::Processed, updated)
+        }
+
+        fn ensure_exists(retrieval_id: Uuid, updated: usize) -> Result<(), RepositoryError> {
+            if updated == 1 {
+                return Ok(());
+            }
+
+            Err(RepositoryError::Unexpected(format!(
+                "retrieval {retrieval_id} not found"
+            )))
         }
 
         fn ensure_transitioned(
