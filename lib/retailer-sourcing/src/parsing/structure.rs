@@ -98,8 +98,9 @@ pub struct Trash {
 }
 
 /// Blanks the `attr` attribute to `::` on every element matched by `selector`,
-/// in place (no extraction, no lifting). Useful for stripping unique values such
-/// as template ids from `form`/`id` attributes across a section.
+/// in place (no extraction, no lifting). When `attr` is prefixed with `!`, the
+/// named attribute is removed entirely instead. Useful for stripping unique
+/// values such as template ids from `form`/`id` attributes across a section.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Scrub {
     /// The CSS selector matching the elements to scrub.

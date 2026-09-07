@@ -96,10 +96,15 @@ fn blank_one(context: &NodeRef, structure: &Structure, components: &mut Vec<Comp
             }
         }
         Structure::Scrub(scrub) => {
-            // Blank the attribute to `::` on every match (only if present).
+            // Blank the attribute to `::` on every match (only if present),
+            // or remove it entirely when the attr name is prefixed with `!`.
             if let Ok(matches) = context.select(&scrub.selector) {
+                let remove_attr = scrub.attr.strip_prefix('!');
+                let attr = remove_attr.unwrap_or(scrub.attr.as_str());
                 for matched in matches.collect::<Vec<_>>() {
-                    if let Some(value) = matched.attributes.borrow_mut().get_mut(scrub.attr.as_str()) {
+                    if remove_attr.is_some() {
+                        matched.attributes.borrow_mut().remove(attr);
+                    } else if let Some(value) = matched.attributes.borrow_mut().get_mut(attr) {
                         *value = "::".to_string();
                     }
                 }
@@ -161,7 +166,7 @@ mod tests {
 
     use super::apply;
     use ::retailer_sourcing::parsing::structure::{
-        RetailerArchitecture, collection, comments, json, particle, segment, trash,
+        RetailerArchitecture, collection, comments, json, particle, scrub, segment, trash,
     };
 
     fn blanked_html(architecture: &RetailerArchitecture, html: &str) -> String {
@@ -270,6 +275,17 @@ mod tests {
         assert!(!blanked.contains("<!--"), "got: {blanked}");
         assert!(!blanked.contains("<style"), "got: {blanked}");
         assert!(blanked.contains("<h1>Hi</h1>"), "got: {blanked}");
+    }
+
+    #[test]
+    fn scrub_can_remove_an_attribute_entirely() {
+        let architecture = RetailerArchitecture::new(vec![scrub("script[nonce]", "!nonce")]);
+        let html = r#"<html><body><script nonce="abc" src="/app.js"></script></body></html>"#;
+
+        let blanked = blanked_html(&architecture, html);
+
+        assert!(blanked.contains(r#"<script src="/app.js"></script>"#), "got: {blanked}");
+        assert!(!blanked.contains("nonce="), "got: {blanked}");
     }
 
     #[test]
