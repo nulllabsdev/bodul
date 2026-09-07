@@ -4,7 +4,7 @@ use shared::link::LinkKind;
 
 pub fn sitemap_config() -> SitemapConfig {
     SitemapConfig {
-        sitemap_url: vec!["https://www.anker.com/sitemap.xml".to_string()],
+        sitemap_url: vec!["https://www.anker.com/de/sitemap.xml".to_string()],
     }
 }
 
@@ -14,18 +14,17 @@ pub fn classify_link(url: &str, source: &str, _image_count: usize) -> LinkKind {
 
 pub fn from_location(url: &str, source: &str) -> LinkKind {
     let matced_by_source = match source {
-        "https://www.anker.com/sitemap-0.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/server-sitemap-index-products.xml" => Some(LinkKind::Product),
-        "https://www.anker.com/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
-        "https://www.anker.com/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
+        "https://www.anker.com/de/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
+        "https://www.anker.com/de/server-sitemap-index-products.xml" => Some(LinkKind::Product),
+        "https://www.anker.com/de/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
+        "https://www.anker.com/de/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
         _ => None,
     };
 
     let path = url.to_lowercase();
 
     if let Some(y) = matced_by_source {
-        if !path.starts_with("https://www.anker.com/eu-de/") {
+        if !path.starts_with("https://www.anker.com/de/") {
             return LinkKind::NotInterested;
         }
 
@@ -43,7 +42,6 @@ mod tests {
     const COLLECTIONS_INDEX: &str = "https://www.anker.com/de/server-sitemap-index-collections.xml";
     const BLOG_INDEX: &str = "https://www.anker.com/de/server-sitemap-index-blog.xml";
     const PAGES_INDEX: &str = "https://www.anker.com/de/server-sitemap-index-pages.xml";
-    const SITEMAP_0: &str = "https://www.anker.com/de/sitemap-0.xml";
 
     #[test]
     fn classifies_products() {
@@ -74,15 +72,9 @@ mod tests {
 
     #[test]
     fn classifies_not_interested() {
-        // pages sitemap and the plain sitemap-0 are never interesting, even under /de/.
-        let cases = [
-            (PAGES_INDEX, "https://www.anker.com/de/pages/impressum"),
-            (SITEMAP_0, "https://www.anker.com/de/products/a110a"),
-        ];
-
-        for (source, url) in cases {
-            assert_eq!(classify_link(url, source, 0), LinkKind::NotInterested, "for {url}");
-        }
+        // The pages sitemap is never interesting, even under /de/.
+        let url = "https://www.anker.com/de/pages/impressum";
+        assert_eq!(classify_link(url, PAGES_INDEX, 0), LinkKind::NotInterested, "for {url}");
     }
 
     #[test]

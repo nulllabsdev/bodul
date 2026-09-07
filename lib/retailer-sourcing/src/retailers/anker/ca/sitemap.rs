@@ -4,7 +4,10 @@ use shared::link::LinkKind;
 
 pub fn sitemap_config() -> SitemapConfig {
     SitemapConfig {
-        sitemap_url: vec!["https://www.anker.com/sitemap.xml".to_string()],
+        sitemap_url: vec![
+            "https://www.anker.com/ca/sitemap.xml".to_string(),
+            "https://www.anker.com/ca-fr/sitemap.xml".to_string(),
+        ],
     }
 }
 
@@ -12,24 +15,34 @@ pub fn classify_link(url: &str, source: &str, _image_count: usize) -> LinkKind {
     from_location(url, source)
 }
 
-pub fn from_location(url: &str, source: &str) -> LinkKind {
-    let matced_by_source = match source {
-        "https://www.anker.com/sitemap-0.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
-        "https://www.anker.com/server-sitemap-index-products.xml" => Some(LinkKind::Product),
-        "https://www.anker.com/server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
-        "https://www.anker.com/server-sitemap-index-blog.xml" => Some(LinkKind::Content),
-        _ => None,
-    };
+/// Canada is served as two locales, each with its own sitemap set. `ca-fr` is not
+/// a suffix of `ca` under the trailing slash, so the prefixes never collide.
+const LOCALE_PREFIXES: [&str; 2] = ["https://www.anker.com/ca/", "https://www.anker.com/ca-fr/"];
 
+pub fn from_location(url: &str, source: &str) -> LinkKind {
     let path = url.to_lowercase();
 
-    if let Some(y) = matced_by_source {
-        if !path.starts_with("https://www.anker.com/ca/") {
-            return LinkKind::NotInterested;
-        }
+    for base in LOCALE_PREFIXES {
+        let Some(file) = source.strip_prefix(base) else {
+            continue;
+        };
 
-        return y;
+        let matched_by_source = match file {
+            "server-sitemap-index-pages.xml" => Some(LinkKind::NotInterested),
+            "server-sitemap-index-products.xml" => Some(LinkKind::Product),
+            "server-sitemap-index-collections.xml" => Some(LinkKind::Catalog),
+            "server-sitemap-index-blog.xml" => Some(LinkKind::Content),
+            _ => None,
+        };
+
+        if let Some(kind) = matched_by_source {
+            // A link is only interesting under the same locale as its source.
+            if !path.starts_with(base) {
+                return LinkKind::NotInterested;
+            }
+
+            return kind;
+        }
     }
 
     anker_from_location(&path)
@@ -44,7 +57,11 @@ mod tests {
     const COLLECTIONS_INDEX: &str = "https://www.anker.com/ca/server-sitemap-index-collections.xml";
     const BLOG_INDEX: &str = "https://www.anker.com/ca/server-sitemap-index-blog.xml";
     const PAGES_INDEX: &str = "https://www.anker.com/ca/server-sitemap-index-pages.xml";
-    const SITEMAP_0: &str = "https://www.anker.com/ca/sitemap-0.xml";
+
+    const FR_PRODUCTS_INDEX: &str = "https://www.anker.com/ca-fr/server-sitemap-index-products.xml";
+    const FR_COLLECTIONS_INDEX: &str = "https://www.anker.com/ca-fr/server-sitemap-index-collections.xml";
+    const FR_BLOG_INDEX: &str = "https://www.anker.com/ca-fr/server-sitemap-index-blog.xml";
+    const FR_PAGES_INDEX: &str = "https://www.anker.com/ca-fr/server-sitemap-index-pages.xml";
 
     #[test]
     fn classifies_products() {
@@ -71,13 +88,6 @@ mod tests {
             classify_link(pages_url, PAGES_INDEX, 0),
             LinkKind::NotInterested,
             "for {pages_url}"
-        );
-
-        let sitemap_url = "https://www.anker.com/ca/products/a110a";
-        assert_eq!(
-            classify_link(sitemap_url, SITEMAP_0, 0),
-            LinkKind::NotInterested,
-            "for {sitemap_url}"
         );
     }
 
@@ -129,5 +139,55 @@ mod tests {
     fn path_matching_is_case_insensitive() {
         let url = "HTTPS://WWW.ANKER.COM/CA/PRODUCTS/A110A";
         assert_eq!(classify_link(url, PRODUCTS_INDEX, 0), LinkKind::Product, "for {url}");
+    }
+
+    // The `ca-fr` locale has its own sitemap set and is classified the same way.
+
+    #[test]
+    fn classifies_ca_fr_locale() {
+        let cases = [
+            (
+                FR_PRODUCTS_INDEX,
+                "https://www.anker.com/ca-fr/products/a110a",
+                LinkKind::Product,
+            ),
+            (
+                FR_COLLECTIONS_INDEX,
+                "https://www.anker.com/ca-fr/collections/1-2-phone-charges",
+                LinkKind::Catalog,
+            ),
+            (
+                FR_BLOG_INDEX,
+                "https://www.anker.com/ca-fr/blogs/ac-power",
+                LinkKind::Content,
+            ),
+            (
+                FR_PAGES_INDEX,
+                "https://www.anker.com/ca-fr/pages/about-us",
+                LinkKind::NotInterested,
+            ),
+        ];
+
+        for (source, url, expected) in cases {
+            assert_eq!(classify_link(url, source, 0), expected, "for {url}");
+        }
+    }
+
+    #[test]
+    fn ca_prefix_does_not_satisfy_ca_fr_guard() {
+        // The mirror of `ca_fr_prefix_does_not_satisfy_ca_guard`: each locale's
+        // source only accepts links under that same locale.
+        let url = "https://www.anker.com/ca/products/a110a";
+        assert_eq!(
+            classify_link(url, FR_PRODUCTS_INDEX, 0),
+            LinkKind::NotInterested,
+            "for {url}"
+        );
+    }
+
+    #[test]
+    fn ca_fr_path_matching_is_case_insensitive() {
+        let url = "HTTPS://WWW.ANKER.COM/CA-FR/PRODUCTS/A110A";
+        assert_eq!(classify_link(url, FR_PRODUCTS_INDEX, 0), LinkKind::Product, "for {url}");
     }
 }
