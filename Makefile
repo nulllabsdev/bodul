@@ -1,4 +1,9 @@
-.PHONY: fmt test check cargo-fix clippy-fix check-strict docker-build docker-up docker-down gomd wip
+.PHONY: fmt test check cargo-fix clippy-fix check-strict docker-build docker-up docker-down db-dump gomd wip
+
+DB_SERVICE ?= db
+DB_USER ?= bodul
+DB_NAME ?= bodul
+DUMP_DIR ?= dumps
 
 fmt:
 	$(MAKE) -C apps/mvp fmt
@@ -47,3 +52,11 @@ gomd:
 
 wip:
 	git add . && git commit -am 'wip'
+
+db-dump:
+	@mkdir -p $(DUMP_DIR)
+	@out="$(DUMP_DIR)/$(DB_NAME)_$$(date +%Y%m%d-%H%M%S).sql"; \
+	echo "dumping $(DB_NAME) -> $$out"; \
+	docker compose exec -T $(DB_SERVICE) pg_dump -U $(DB_USER) -d $(DB_NAME) > "$$out" \
+		&& echo "done: $$out" \
+		|| { echo "dump failed (is the '$(DB_SERVICE)' service running? try: make docker-up)"; rm -f "$$out"; exit 1; }
