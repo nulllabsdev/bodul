@@ -1,3 +1,7 @@
+use crate::RecordMappingError;
+use crate::sitemap_discovery::model::RetrievalStatus;
+use shared::retailer::RetailerCode;
+
 pub const REQUEST_SITEMAP_RETRIEVAL_COMMAND: &str = "RequestSitemapRetrieval";
 pub const SITEMAP_RETRIEVED_EVENT: &str = "SitemapRetrieved";
 
@@ -256,6 +260,7 @@ mod entity {
 mod infra_sitemap_retrieval_model {
     use super::super::model::RetrievalStatus;
     use super::entity::SitemapRetrieval;
+    use super::{map_to_retrieval_code, map_to_retrieval_status};
     use crate::RecordMappingError;
     use crate::schema::sitemap_retrievals;
     use chrono::{DateTime, Utc};
@@ -300,10 +305,8 @@ mod infra_sitemap_retrieval_model {
         type Error = RecordMappingError;
 
         fn try_from(record: SitemapRetrievalRecord) -> Result<Self, Self::Error> {
-            let retailer_code = RetailerCode::try_from(record.retailer_code.as_str())
-                .map_err(|_| RecordMappingError::InvalidRetailerCode(record.retailer_code.clone()))?;
-            let status = RetrievalStatus::try_from(record.status.as_str())
-                .map_err(|_| RecordMappingError::InvalidStatus(record.status.clone()))?;
+            let retailer_code = map_to_retrieval_code(record.retailer_code.as_str())?;
+            let status = map_to_retrieval_status(record.status.as_str())?;
 
             let retrieval = SitemapRetrieval {
                 id: record.id,
@@ -314,6 +317,17 @@ mod infra_sitemap_retrieval_model {
             Ok(retrieval)
         }
     }
+}
+
+/// Maps a stored retailer-code string onto its typed code, preserving the conversion
+/// error so callers can match on it.
+fn map_to_retrieval_code(retailer_code: &str) -> Result<RetailerCode, RecordMappingError> {
+    Ok(RetailerCode::try_from(retailer_code)?)
+}
+
+/// Maps a stored status string onto [`RetrievalStatus`], preserving the conversion error.
+fn map_to_retrieval_status(status: &str) -> Result<RetrievalStatus, RecordMappingError> {
+    Ok(RetrievalStatus::try_from(status)?)
 }
 
 mod infra_sitemap_retrieval_repository {
