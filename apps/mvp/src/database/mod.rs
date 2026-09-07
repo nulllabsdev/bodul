@@ -7,8 +7,8 @@ use diesel::{RunQueryDsl, sql_query};
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
 const DEFAULT_DATABASE_URL: &str = "postgres://bodul:bodul@localhost:5432/bodul";
-const DEFAULT_MAX_CONNECTIONS: u32 = 5;
-const DEFAULT_CONNECT_TIMEOUT_SECONDS: u64 = 5;
+const DEFAULT_MAX_CONNECTIONS: u32 = 20;
+const DEFAULT_CONNECT_TIMEOUT_SECONDS: u64 = 30;
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
