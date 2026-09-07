@@ -1397,6 +1397,7 @@ dependencies = [
  "poem",
  "quick-xml",
  "rand 0.7.3",
+ "regex",
  "reqwest",
  "retailer-sourcing",
  "serde",

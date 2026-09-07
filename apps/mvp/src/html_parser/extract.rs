@@ -11,7 +11,10 @@
 //! targets the context element itself, and a structure with an empty name merges
 //! its values into the parent rather than nesting under a key.
 
+use std::sync::LazyLock;
+
 use kuchiki::{ElementData, NodeDataRef, NodeRef};
+use regex::Regex;
 use serde_json::{Map, Value};
 
 use ::retailer_sourcing::parsing::structure::{Attribute, RetailerArchitecture, Structure};
@@ -114,7 +117,11 @@ fn extract_one(context: &NodeRef, structure: &Structure) -> Vec<(String, Value)>
                     .collect()
             } else {
                 matches
-                    .filter_map(|matched| json_after(&matched.as_node().text_contents(), &json.anchor))
+                    .filter_map(|matched| {
+                        let text = matched.as_node().text_contents();
+                        let text = if json.js { normalize_js_object(&text) } else { text };
+                        json_after(&text, &json.anchor)
+                    })
                     .collect()
             };
 
@@ -251,6 +258,54 @@ fn detach_comments(context: &NodeRef) {
     }
 }
 
+/// Matches a `<number> + "<suffix>"` concatenation so it can be collapsed.
+static CONCAT: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"(\d+(?:\.\d+)?)\s*\+\s*"([^"]*)""#).expect("valid concat regex"));
+
+/// Rewrites a JavaScript object literal into JSON that [`json_after`] can parse:
+/// single-quoted string delimiters become double quotes (with inner `"` escaped
+/// and `\'` unescaped), and a simple `<number> + "<suffix>"` concatenation
+/// (e.g. GA's `0 + '%'`) collapses into a single string literal.
+fn normalize_js_object(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    // Track which quote style, if any, currently delimits a string.
+    let mut in_double = false;
+    let mut in_single = false;
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' if in_double => {
+                // Preserve escapes verbatim inside a real JSON string.
+                out.push('\\');
+                if let Some(next) = chars.next() {
+                    out.push(next);
+                }
+            }
+            '\\' if in_single => match chars.next() {
+                // `\'` is just an apostrophe in JSON; keep other escapes as-is.
+                Some('\'') => out.push('\''),
+                Some(next) => {
+                    out.push('\\');
+                    out.push(next);
+                }
+                None => out.push('\\'),
+            },
+            '"' if in_single => out.push_str("\\\""),
+            '"' => {
+                in_double = !in_double;
+                out.push('"');
+            }
+            '\'' if in_double => out.push('\''),
+            '\'' => {
+                in_single = !in_single;
+                out.push('"');
+            }
+            _ => out.push(c),
+        }
+    }
+    CONCAT.replace_all(&out, r#""$1$2""#).into_owned()
+}
+
 /// Detaches every element matched by `selector` relative to `context`.
 fn detach_all(context: &NodeRef, selector: &str) {
     if let Ok(matches) = context.select(selector) {
@@ -299,7 +354,7 @@ mod tests {
 
     use super::extract;
     use ::retailer_sourcing::parsing::structure::{
-        RetailerArchitecture, collection, comments, json, json_after, particle, segment, trash,
+        RetailerArchitecture, collection, comments, json, json_after, json_js, particle, segment, trash,
     };
 
     #[test]
@@ -507,6 +562,42 @@ mod tests {
                 .filter(|n| n.as_comment().is_some())
                 .count(),
             0
+        );
+    }
+
+    #[test]
+    fn json_js_normalizes_single_quoted_javascript_before_parsing() {
+        // A GA `dataLayer` push: single-quoted keys/strings and a `0 + '%'`
+        // concatenation that plain `json_after` cannot parse.
+        let architecture = RetailerArchitecture::new(vec![json_js(
+            "script",
+            "view_item",
+            "datalayer",
+            vec![
+                ("value", "value"),
+                ("items.item_id", "item_id"),
+                ("items.item_category", "category"),
+                ("items.price_percentage_discount", "pct"),
+            ],
+        )]);
+        let html = r#"<html><body><script>
+            window.dataLayer.push({ ecommerce: null });
+            window.dataLayer.push({ 'event': 'view_item', 'ecommerce': {
+                'value': 15.79, 'items': [{ 'item_id': '87875',
+                'price_percentage_discount': 0 + '%', 'item_category': 'Hladnjaci CPU i VGA' }] } });
+            </script></body></html>"#;
+        let node = kuchiki::parse_html().one(html);
+
+        let value = extract(&node, &architecture);
+
+        assert_eq!(
+            value,
+            json!({ "datalayer": {
+                "value": "15.79",
+                "item_id": "87875",
+                "category": "Hladnjaci CPU i VGA",
+                "pct": "0%",
+            } })
         );
     }
 
