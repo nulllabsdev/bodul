@@ -1,7 +1,5 @@
 use shared::link::LinkKind;
 
-
-
 // ============================== Separator ==============================
 
 /// Classifies a page URL by Shopify path conventions: `/products/` is a product,

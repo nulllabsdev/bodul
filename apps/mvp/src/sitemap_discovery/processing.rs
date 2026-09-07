@@ -68,10 +68,10 @@ mod handler {
     use super::repository::ProcessedSitemapRepository;
     use crate::assembly::io::MvpEvent;
     use crate::lib_sitemap::io::RawSitemapDocument;
-    use ::retailer_sourcing::registry::sitemap_config;
     use crate::sitemap_discovery::model::SitemapError;
     use crate::sitemap_discovery::processing::sitemap::document_from_raw;
     use crate::{IntoCommandError, RepositoryError};
+    use ::retailer_sourcing::registry::sitemap_config;
     use chrono::Utc;
     use kernel::io::{CommandError, CommandHandlerPort};
     use shared::SitemapConfig;

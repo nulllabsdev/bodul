@@ -2,10 +2,10 @@
 
 use std::error::Error;
 
+use ::retailer_sourcing::registry::sitemap_config;
 use kernel::io::NewCommandMetadata;
 use mvp::assembly::boot;
 use mvp::assembly::io::{AppCommand, NewCommandEnvelope};
-use ::retailer_sourcing::registry::sitemap_config;
 use mvp::sitemap_discovery::io::RequestSitemapRetrieval;
 use shared::retailer::RetailerCode;
 use uuid::Uuid;
