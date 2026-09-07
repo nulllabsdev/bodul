@@ -1,23 +1,36 @@
-//! Destructures stored product pages into structured JSON.
+//! Destructures dumped product pages into structured JSON.
 //!
-//! For each supported retailer it processes `data/pages/{Retailer}/*.html` and
-//! writes one JSON file per page into `data/pages-destructed/{Retailer}/`.
+//! For each retailer dir found under `data/dumps/offers/{retailer}/` it processes
+//! that retailer's `*.html` pages and writes one JSON file per page into
+//! `data/offers-destructed/{retailer}/`.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use mvp::html_parser;
-use shared::retailer::{RETAILERS, RetailerCode};
+use shared::retailer::RetailerCode;
+use shared::retailer::code_for_name;
 
 fn main() {
     dotenvy::dotenv().ok();
     let _guard = mvp::logging::init();
+    let input_root = PathBuf::from("data/dumps/offers");
+    let output_root = PathBuf::from("data/offers-destructed");
+
+    let retailers = match retailer_dirs(&input_root) {
+        Ok(retailers) => retailers,
+        Err(error) => {
+            tracing::error!("error reading {}/: {error}", input_root.display());
+            std::process::exit(1);
+        }
+    };
+
     let mut processed = 0usize;
     let mut failed = 0usize;
 
-    for &(retailer, retailer_code) in RETAILERS {
-        let input_dir = PathBuf::from("data/pages").join(retailer);
-        let output_dir = PathBuf::from("data/pages-destructed").join(retailer);
+    for (input_dir, retailer_code) in retailers {
+        let slug = input_dir.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+        let output_dir = output_root.join(slug);
 
         if let Err(error) = fs::create_dir_all(&output_dir) {
             tracing::error!("error creating {}: {error}", output_dir.display());
@@ -55,6 +68,24 @@ fn main() {
     if processed == 0 {
         std::process::exit(1);
     }
+}
+
+/// Each `data/dumps/offers/{slug}` subdir paired with its resolved `RetailerCode`.
+/// Skips (with a warning) any dir whose name isn't a known retailer slug.
+fn retailer_dirs(base: &Path) -> Result<Vec<(PathBuf, RetailerCode)>, String> {
+    let mut dirs = Vec::new();
+    for entry in fs::read_dir(base).map_err(|error| error.to_string())?.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
+        match code_for_name(name) {
+            Some(code) => dirs.push((path, code)),
+            None => tracing::warn!("skip {}: unknown retailer slug", path.display()),
+        }
+    }
+    Ok(dirs)
 }
 
 /// Reads one page, destructures it, and writes the JSON result.

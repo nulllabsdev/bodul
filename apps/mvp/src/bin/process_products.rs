@@ -1,7 +1,7 @@
 //! Processes destructured product JSON into processed product JSON.
 //!
-//! It reads every `*.json` under `data/pages-destructed/{Retailer}/` and writes a
-//! processed copy into `data/pages-processed/{Retailer}/`, mirroring the directory
+//! It reads every `*.json` under `data/offers-destructed/{retailer}/` and writes a
+//! processed copy into `data/offers-processed/{retailer}/`, mirroring the directory
 //! layout. For now processing is the identity (output = input); this is the seam
 //! where normalization/enrichment will live.
 //!
@@ -20,8 +20,8 @@ use ::retailer_sourcing::retailers::minisforum::{
 fn main() {
     dotenvy::dotenv().ok();
     let _guard = mvp::logging::init();
-    let input_root = PathBuf::from("data/pages-destructed");
-    let output_root = PathBuf::from("data/pages-processed");
+    let input_root = PathBuf::from("data/offers-destructed");
+    let output_root = PathBuf::from("data/offers-processed");
 
     let retailers = match fs::read_dir(&input_root) {
         Ok(entries) => entries,
