@@ -7,7 +7,7 @@
 //! `<rte-formatter>`) and standard Shopify `<variant-picker>`.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, scrub, segment, trash};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, scrub, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
@@ -187,6 +187,7 @@ pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
         // (~90KB/file) leaked verbatim into the valueless output. Remove it so
         // the valueless skeleton carries no script/style text. (Ordered after
         // the JSON extractions, which run in list order, so nothing is lost.)
+        comments(),
         trash("style"),
         trash("noscript"),
         trash("script"),

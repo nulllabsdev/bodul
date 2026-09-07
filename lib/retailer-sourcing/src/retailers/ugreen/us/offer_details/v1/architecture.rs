@@ -7,10 +7,11 @@
 //! `<rte-formatter>`) and standard Shopify `<variant-picker>`.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, segment, trash};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         particle("html", "locale", vec![("lang", "value")]),
         particle("title", "page_title", vec![("", "value")]),
         // Skip-to-content accessibility link: a top-level `<a>` sibling right

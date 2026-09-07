@@ -27,10 +27,11 @@
 //! its own top-level `segment`, not a `collection`.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, segment, trash};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         particle("html", "locale", vec![("lang", "value")]),
         // JSON-LD: Organization + Product schemas.
         collection(

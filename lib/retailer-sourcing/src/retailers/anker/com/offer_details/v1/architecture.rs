@@ -1,9 +1,10 @@
 //! Page architecture for Anker (`www.anker.com`).
 
-use crate::parsing::structure::{RetailerArchitecture, collection, json, particle, segment, trash};
+use crate::parsing::structure::{RetailerArchitecture, collection, comments, json, particle, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         trash("svg"),
         trash(r#"script[src^="/_next/"]"#),
         trash(r#"link[href^="/_next/"]"#),

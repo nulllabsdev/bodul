@@ -19,7 +19,7 @@
 //! `valueless` to blank the whole script).
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, segment, trash};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
@@ -196,6 +196,7 @@ pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
         // tenant had no blanket sweep at all. Remove them so the valueless
         // skeleton carries no script/style text. (Ordered after the JSON
         // extractions, which run in list order, so nothing is lost.)
+        comments(),
         trash("style"),
         trash("noscript"),
         trash("script"),

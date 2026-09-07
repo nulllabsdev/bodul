@@ -41,10 +41,11 @@
 //! the JSON extractions run, so the valueless skeleton carries no script noise.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, particle, scrub, segment, trash};
+use crate::parsing::structure::{collection, comments, json, particle, scrub, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         // Per-deploy build bookkeeping — blank so skeletons compare equal.
         scrub(r#"meta[name="next-head-count"]"#, "content"),
         // The Next.js payload: full Shopify product record plus shop/SEO context.

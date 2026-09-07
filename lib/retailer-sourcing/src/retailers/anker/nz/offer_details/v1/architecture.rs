@@ -56,10 +56,11 @@
 //!   selector to also match `div[id^="Mpp"]`.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, particle, scrub, segment, trash};
+use crate::parsing::structure::{collection, comments, json, particle, scrub, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         // Build-hashed Next.js asset references (chunk scripts, css/font
         // preloads) and the head-count bookkeeping meta change with every
         // deploy and per page template — pure build noise, remove it so

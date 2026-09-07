@@ -10,10 +10,11 @@
 //! with *unquoted* keys — unparseable, so it is only blanked, not extracted.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, scrub, segment};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, scrub, segment};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         particle("html", "locale", vec![("lang", "value")]),
         // JSON-LD: Organization + WebPage + WebSite (no Product schema on this
         // store, but keep product-ish paths for regional variants that add one).

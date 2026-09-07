@@ -21,7 +21,7 @@
 //!   sweep (after all extraction) plus `comments()` to actually skeletonize.
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, json_after, particle, segment, trash};
+use crate::parsing::structure::{collection, comments, json, json_after, particle, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
@@ -264,6 +264,7 @@ pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
         // and Shopify app-embed blocks that inline the current product's
         // handle/id/variant into JSON) — all product-relevant data has already
         // been captured by the json/json_after/schemas entries above.
+        comments(),
         trash("script"),
         trash("style"),
     ])

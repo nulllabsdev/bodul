@@ -7,10 +7,11 @@
 //! element (no `<footer>` HTML tag).
 
 use crate::parsing::structure::RetailerArchitecture;
-use crate::parsing::structure::{collection, json, particle, scrub, segment, trash};
+use crate::parsing::structure::{collection, comments, json, particle, scrub, segment, trash};
 
 pub fn offer_detail_architecture_v1() -> RetailerArchitecture {
     RetailerArchitecture::new(vec![
+        comments(),
         scrub(r#"meta[name="next-head-count"]"#, "content"),
         trash(r#"script[src^="/_next/"]"#),
         trash(r#"link[href^="/_next/"]"#),
