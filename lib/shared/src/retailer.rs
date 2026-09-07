@@ -55,6 +55,58 @@ pub enum RetailerCode {
     AnkerVn,
 }
 
+/// Every retailer processed by the `destructure`/`valueless` binaries, as
+/// `(directory name, code)`.
+pub const RETAILERS: &[(&str, RetailerCode)] = &[
+    ("MinisForumAu", RetailerCode::MinisForumAu),
+    ("MinisForumCa", RetailerCode::MinisForumCa),
+    ("MinisForumEu", RetailerCode::MinisForumEu),
+    ("MinisForumUs", RetailerCode::MinisForumUs),
+    ("MinisForumUk", RetailerCode::MinisForumUk),
+    ("MinisForumFr", RetailerCode::MinisForumFr),
+    ("MinisForumKr", RetailerCode::MinisForumKr),
+    ("MinisForumJp", RetailerCode::MinisForumJp),
+    ("MinisForumRu", RetailerCode::MinisForumRu),
+    ("MinisForumHk", RetailerCode::MinisForumHk),
+    ("MiCom", RetailerCode::MiCom),
+    ("UgreenCom", RetailerCode::UgreenCom),
+    ("UgreenUs", RetailerCode::UgreenUs),
+    ("UgreenCa", RetailerCode::UgreenCa),
+    ("UgreenEu", RetailerCode::UgreenEu),
+    ("UgreenDe", RetailerCode::UgreenDe),
+    ("UgreenUk", RetailerCode::UgreenUk),
+    ("UgreenFr", RetailerCode::UgreenFr),
+    ("UgreenNl", RetailerCode::UgreenNl),
+    ("UgreenJp", RetailerCode::UgreenJp),
+    ("UgreenKr", RetailerCode::UgreenKr),
+    ("UgreenIn", RetailerCode::UgreenIn),
+    ("UgreenNas", RetailerCode::UgreenNas),
+    ("UgreenNasCa", RetailerCode::UgreenNasCa),
+    ("UgreenNasEu", RetailerCode::UgreenNasEu),
+    ("UgreenNasDe", RetailerCode::UgreenNasDe),
+    ("UgreenNasUk", RetailerCode::UgreenNasUk),
+    ("UgreenNasFr", RetailerCode::UgreenNasFr),
+    ("UgreenNasEs", RetailerCode::UgreenNasEs),
+    ("UgreenNasIt", RetailerCode::UgreenNasIt),
+    ("UgreenNasAu", RetailerCode::UgreenNasAu),
+    ("UgreenNasJp", RetailerCode::UgreenNasJp),
+    ("AnkerCom", RetailerCode::AnkerCom),
+    ("AnkerJapanCom", RetailerCode::AnkerJapanCom),
+    ("AnkerKr", RetailerCode::AnkerKr),
+    ("AnkerItalyCom", RetailerCode::AnkerItalyCom),
+    ("AnkerNordicsCom", RetailerCode::AnkerNordicsCom),
+    ("AnkerUk", RetailerCode::AnkerUk),
+    ("AnkerCa", RetailerCode::AnkerCa),
+    ("AnkerEu", RetailerCode::AnkerEu),
+    ("AnkerDe", RetailerCode::AnkerDe),
+    ("AnkerFr", RetailerCode::AnkerFr),
+    ("AnkerPl", RetailerCode::AnkerPl),
+    ("AnkerAu", RetailerCode::AnkerAu),
+    ("AnkerNz", RetailerCode::AnkerNz),
+    ("AnkerMy", RetailerCode::AnkerMy),
+    ("AnkerVn", RetailerCode::AnkerVn),
+];
+
 #[derive(Debug, PartialEq)]
 pub struct RetailerCodeConversionError(String);
 
