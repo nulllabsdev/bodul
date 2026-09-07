@@ -98,6 +98,10 @@ fn extract_one(context: &NodeRef, structure: &Structure) -> Vec<(String, Value)>
         }
         // Scrub blanks an attribute for `valueless`; extraction is unaffected.
         Structure::Scrub(_) => Vec::new(),
+        Structure::Comments(_) => {
+            detach_comments(context);
+            Vec::new()
+        }
         Structure::Json(json) => {
             let Ok(matches) = context.select(&json.selector) else {
                 return Vec::new();
@@ -238,6 +242,15 @@ fn resolve(value: &Value, path: &str) -> Option<Value> {
     }
 }
 
+/// Detaches every HTML comment node in `context` (itself and its descendants).
+fn detach_comments(context: &NodeRef) {
+    for node in context.inclusive_descendants().collect::<Vec<_>>() {
+        if node.as_comment().is_some() {
+            node.detach();
+        }
+    }
+}
+
 /// Detaches every element matched by `selector` relative to `context`.
 fn detach_all(context: &NodeRef, selector: &str) {
     if let Ok(matches) = context.select(selector) {
@@ -286,7 +299,7 @@ mod tests {
 
     use super::extract;
     use ::retailer_sourcing::parsing::structure::{
-        RetailerArchitecture, collection, json, json_after, particle, segment, trash,
+        RetailerArchitecture, collection, comments, json, json_after, particle, segment, trash,
     };
 
     #[test]
@@ -474,6 +487,26 @@ mod tests {
                 { "sku": "A", "available": "true", "price": "97500" },
                 { "sku": "B", "available": "false", "price": "211900" },
             ] })
+        );
+    }
+
+    #[test]
+    fn comments_removes_comment_nodes_from_the_working_tree() {
+        // The comment is detached first, so the heading particle reads clean text
+        // rather than a tree still carrying comment noise.
+        let architecture = RetailerArchitecture::new(vec![comments(), particle("h1", "heading", vec![("", "value")])]);
+        let html = r#"<html><body><!-- tracking --><h1>Hello</h1><!-- more --></body></html>"#;
+        let node = kuchiki::parse_html().one(html);
+
+        let value = extract(&node, &architecture);
+
+        assert_eq!(value, json!({ "heading": "Hello" }));
+        // No comment nodes remain in the tree.
+        assert_eq!(
+            node.inclusive_descendants()
+                .filter(|n| n.as_comment().is_some())
+                .count(),
+            0
         );
     }
 

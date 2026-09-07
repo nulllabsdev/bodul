@@ -117,6 +117,16 @@ fn blank_one(context: &NodeRef, structure: &Structure, components: &mut Vec<Comp
                 }
             }
         }
+        Structure::Comments(_) => detach_comments(context),
+    }
+}
+
+/// Detaches every HTML comment node in `context` (itself and its descendants).
+fn detach_comments(context: &NodeRef) {
+    for node in context.inclusive_descendants().collect::<Vec<_>>() {
+        if node.as_comment().is_some() {
+            node.detach();
+        }
     }
 }
 
@@ -150,7 +160,9 @@ mod tests {
     use kuchiki::traits::*;
 
     use super::apply;
-    use ::retailer_sourcing::parsing::structure::{RetailerArchitecture, collection, json, particle, segment};
+    use ::retailer_sourcing::parsing::structure::{
+        RetailerArchitecture, collection, comments, json, particle, segment, trash,
+    };
 
     fn blanked_html(architecture: &RetailerArchitecture, html: &str) -> String {
         let document = kuchiki::parse_html().one(html);
@@ -245,6 +257,19 @@ mod tests {
             components.iter().filter(|c| c.contains(r#"content="%value%""#)).count(),
             2
         );
+    }
+
+    #[test]
+    fn comments_and_style_elements_are_stripped_from_the_page() {
+        let architecture = RetailerArchitecture::new(vec![comments(), trash("style")]);
+        let html = r#"<html><head><style>.a{color:red}</style></head>
+            <body><!-- ga tag --><h1>Hi</h1><!-- end --></body></html>"#;
+
+        let blanked = blanked_html(&architecture, html);
+
+        assert!(!blanked.contains("<!--"), "got: {blanked}");
+        assert!(!blanked.contains("<style"), "got: {blanked}");
+        assert!(blanked.contains("<h1>Hi</h1>"), "got: {blanked}");
     }
 
     #[test]

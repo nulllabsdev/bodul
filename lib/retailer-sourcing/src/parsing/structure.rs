@@ -14,10 +14,13 @@
 //!   yields no output.
 //! - [`Json`] — parses a matched `<script>` as JSON and pulls dotted `paths`
 //!   (e.g. JSON-LD `offers.price`). Extract-only.
+//! - [`Comments`] — removes every HTML comment node within its context. Yields
+//!   no output.
 //!
-//! Build them with the [`particle`], [`collection`], [`segment`], [`trash`] and
-//! [`json`] helpers and collect them into a [`RetailerArchitecture`]. The walker
-//! in the application's HTML parser applies the architecture to a parsed page.
+//! Build them with the [`particle`], [`collection`], [`segment`], [`trash`],
+//! [`json`] and [`comments`] helpers and collect them into a
+//! [`RetailerArchitecture`]. The walker in the application's HTML parser applies
+//! the architecture to a parsed page.
 
 /// One value to pull from a matched element.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -47,6 +50,8 @@ pub enum Structure {
     Scrub(Scrub),
     /// Parses a matched element's JSON content and pulls dotted paths.
     Json(Json),
+    /// Removes every HTML comment node within its context; yields nothing.
+    Comments(Comments),
 }
 
 /// A leaf: pulls named value(s) from the element matched by `selector`.
@@ -131,6 +136,11 @@ pub struct Json {
     pub js: bool,
 }
 
+/// Removes every HTML comment node within its context. Yields no output; used to
+/// strip comment noise from a page before extraction and `valueless` blanking.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Comments;
+
 /// A [`Particle`] matched by `selector`, named `name`, pulling `attrs` as
 /// `(key, name)` pairs.
 pub fn particle(selector: &str, name: &str, attrs: Vec<(&str, &str)>) -> Structure {
@@ -214,6 +224,11 @@ fn json_value(selector: &str, anchor: &str, name: &str, paths: Vec<(&str, &str)>
             .collect(),
         js,
     })
+}
+
+/// A [`Comments`] structure that removes every HTML comment node in its context.
+pub fn comments() -> Structure {
+    Structure::Comments(Comments)
 }
 
 /// A retailer's page architecture: the top-level [`Structure`]s of its pages.
