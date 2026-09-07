@@ -3,3 +3,5 @@
 pub mod parsing;
 pub mod registry;
 pub mod retailers;
+
+pub use registry::architecture_for;
