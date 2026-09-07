@@ -6,6 +6,9 @@ publish = false
 
 [dependencies]
 shared = { path = "../shared" }
+money = { path = "../money" }
+regex = "1.12.4"
+chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
