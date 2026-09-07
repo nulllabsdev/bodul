@@ -25,8 +25,7 @@ pub mod io {
         GroupSitemapContent,
         GroupSitemapContentHandler,
         SITEMAP_CONTENT_GROUPED_EVENT,
-        SitemapContentGrouped,
-        SitemapContentGroupedSubscriber, //
+        SitemapContentGrouped, //
     };
 
     pub use super::processing::io::{

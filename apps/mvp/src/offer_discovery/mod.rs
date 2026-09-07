@@ -3,10 +3,12 @@
 // Only the schema mapping lives here for now; the discovery subscriber and the
 // download handler that fill these tables arrive with the feature.
 
+pub mod discovery;
 pub mod download;
 pub mod model;
 
 pub mod io {
+    pub use super::discovery::io::OfferDiscoverySubscriber;
     pub use super::download::io::{
         DOWNLOAD_OFFER_PAGE_COMMAND, DownloadOfferPage, DownloadOfferPageHandler, OFFER_PAGE_DOWNLOAD_SKIPPED_EVENT,
         OFFER_PAGE_WAS_DOWNLOADED_EVENT, OfferPageDownloadSkipped, OfferPageWasDownloaded, OfferRepository,

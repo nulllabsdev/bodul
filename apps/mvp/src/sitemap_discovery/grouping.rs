@@ -2,7 +2,6 @@ pub const GROUP_SITEMAP_CONTENT_COMMAND: &str = "GroupSitemapContent";
 pub const SITEMAP_CONTENT_GROUPED_EVENT: &str = "SitemapContentGrouped";
 
 pub mod io {
-    pub use super::eventing::SitemapContentGroupedSubscriber;
     pub use super::handler::GroupSitemapContentHandler;
     pub use super::models::{GroupSitemapContent, SitemapContentGrouped};
     pub use super::repository::GroupedSitemapContentRepository;
@@ -249,18 +248,6 @@ mod handler {
                 RepositoryError::Unexpected(format!("grouped sitemap count is too large for storage: {count}"))
             })
             .storage_err()
-    }
-}
-
-mod eventing {
-    use kernel::{EventError, EventSubscriberPort, NewEventEnvelope};
-
-    pub struct SitemapContentGroupedSubscriber;
-
-    impl EventSubscriberPort for SitemapContentGroupedSubscriber {
-        fn handle(&self, _envelope: &NewEventEnvelope) -> Result<(), EventError> {
-            Ok(())
-        }
     }
 }
 

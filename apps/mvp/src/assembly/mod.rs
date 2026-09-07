@@ -163,10 +163,10 @@ pub type MulacHandle = kernel::PersistentKernelHandle;
 
 pub fn start_mulac(pool: DbPool, drain_rounds: usize) -> Result<MulacHandle, kernel::KernelError> {
     use crate::offer_discovery::io::{
-        DOWNLOAD_OFFER_PAGE_COMMAND, DownloadOfferPageHandler, OfferRepository, RawOfferRepository,
+        DOWNLOAD_OFFER_PAGE_COMMAND, DownloadOfferPageHandler, OfferDiscoverySubscriber, OfferRepository,
+        RawOfferRepository,
     };
     use crate::sitemap_discovery::io::GroupSitemapContentHandler;
-    use crate::sitemap_discovery::io::SitemapContentGroupedSubscriber;
     use crate::sitemap_discovery::io::{ProcessSitemapHandler, SitemapProcessedSubscriber};
     use crate::sitemap_discovery::io::{RequestSitemapRetrievalHandler, SitemapRetrievedSubscriber};
 
@@ -236,10 +236,13 @@ pub fn start_mulac(pool: DbPool, drain_rounds: usize) -> Result<MulacHandle, ker
         })
         .event_subscriber(
             SITEMAP_CONTENT_GROUPED_EVENT,
-            "sitemap-content-grouped-terminal",
+            "discover-offers",
             timing::timed_event(
                 SITEMAP_CONTENT_GROUPED_EVENT,
-                Arc::new(SitemapContentGroupedSubscriber) as Arc<dyn kernel::EventSubscriberPort>,
+                Arc::new(OfferDiscoverySubscriber::new(
+                    pool.clone(),
+                    GroupedSitemapContentRepository::new(pool.clone()),
+                )) as Arc<dyn kernel::EventSubscriberPort>,
             ),
         )
         .start_persistent(pool, drain_rounds)
