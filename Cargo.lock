@@ -1355,6 +1355,7 @@ dependencies = [
  "quick-xml",
  "rand 0.7.3",
  "reqwest",
+ "retailer-sourcing",
  "serde",
  "serde_json",
  "shared",

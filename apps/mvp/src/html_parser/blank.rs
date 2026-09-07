@@ -18,7 +18,7 @@
 
 use kuchiki::{ElementData, NodeDataRef, NodeRef};
 
-use super::structure::{RetailerArchitecture, Structure};
+use ::retailer_sourcing::parsing::structure::{RetailerArchitecture, Structure};
 
 /// A collection item lifted out of the page during blanking: its collection
 /// `name`, its `index` within that collection, and the detached (blanked)
@@ -150,7 +150,7 @@ mod tests {
     use kuchiki::traits::*;
 
     use super::apply;
-    use crate::html_parser::structure::{RetailerArchitecture, collection, json, particle, segment};
+    use ::retailer_sourcing::parsing::structure::{RetailerArchitecture, collection, json, particle, segment};
 
     fn blanked_html(architecture: &RetailerArchitecture, html: &str) -> String {
         let document = kuchiki::parse_html().one(html);

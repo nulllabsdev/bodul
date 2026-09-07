@@ -10,122 +10,17 @@
 //! [`destructure`] applies it to extract values.
 
 use kuchiki::traits::*;
+use retailer_sourcing::architecture_for;
 use shared::retailer::RetailerCode;
 
-mod anker;
-mod anker_au;
-mod anker_ca;
-mod anker_com;
-mod anker_de;
-mod anker_eu;
-mod anker_fr;
-mod anker_italy_com;
-mod anker_japan_com;
-mod anker_kr;
-mod anker_my;
-mod anker_nordics_com;
-mod anker_nz;
-mod anker_pl;
-mod anker_uk;
-mod anker_vn;
 mod blank;
 mod extract;
 mod feature_chart;
-mod mi_com;
-mod minisforum;
-mod minisforum_au;
-mod minisforum_ca;
-mod minisforum_eu;
-mod minisforum_fr;
-mod minisforum_hk;
-mod minisforum_jp;
-mod minisforum_kr;
-mod minisforum_ru;
-mod minisforum_uk;
-mod minisforum_us;
-mod structure;
-mod ugreen_ca;
-mod ugreen_com;
-mod ugreen_de;
-mod ugreen_eu;
-mod ugreen_fr;
-mod ugreen_in;
-mod ugreen_jp;
-mod ugreen_kr;
-mod ugreen_nas;
-mod ugreen_nas_au;
-mod ugreen_nas_ca;
-mod ugreen_nas_de;
-mod ugreen_nas_es;
-mod ugreen_nas_eu;
-mod ugreen_nas_fr;
-mod ugreen_nas_it;
-mod ugreen_nas_jp;
-mod ugreen_nas_uk;
-mod ugreen_nl;
-mod ugreen_uk;
-mod ugreen_us;
 
-pub use structure::{
+pub use ::retailer_sourcing::parsing::structure::{
     Attribute, Collection, Json, Particle, RetailerArchitecture, Scrub, Segment, Structure, Trash, collection, json,
     json_after, particle, scrub, segment, trash,
 };
-
-/// The page architecture for `retailer`.
-///
-/// Retailers without an architecture yet return an empty one, yielding empty
-/// output.
-pub fn architecture_for(retailer: RetailerCode) -> RetailerArchitecture {
-    match retailer {
-        RetailerCode::MinisForumAu => minisforum_au::architecture(),
-        RetailerCode::MinisForumCa => minisforum_ca::architecture(),
-        RetailerCode::MinisForumEu => minisforum_eu::architecture(),
-        RetailerCode::MinisForumUs => minisforum_us::architecture(),
-        RetailerCode::MinisForumUk => minisforum_uk::architecture(),
-        RetailerCode::MinisForumFr => minisforum_fr::architecture(),
-        RetailerCode::MinisForumKr => minisforum_kr::architecture(),
-        RetailerCode::MinisForumJp => minisforum_jp::architecture(),
-        RetailerCode::MinisForumRu => minisforum_ru::architecture(),
-        RetailerCode::MinisForumHk => minisforum_hk::architecture(),
-        RetailerCode::MiCom => mi_com::architecture(),
-        RetailerCode::UgreenCom => ugreen_com::architecture(),
-        RetailerCode::UgreenUs => ugreen_us::architecture(),
-        RetailerCode::UgreenCa => ugreen_ca::architecture(),
-        RetailerCode::UgreenEu => ugreen_eu::architecture(),
-        RetailerCode::UgreenDe => ugreen_de::architecture(),
-        RetailerCode::UgreenUk => ugreen_uk::architecture(),
-        RetailerCode::UgreenFr => ugreen_fr::architecture(),
-        RetailerCode::UgreenNl => ugreen_nl::architecture(),
-        RetailerCode::UgreenJp => ugreen_jp::architecture(),
-        RetailerCode::UgreenKr => ugreen_kr::architecture(),
-        RetailerCode::UgreenIn => ugreen_in::architecture(),
-        RetailerCode::UgreenNas => ugreen_nas::architecture(),
-        RetailerCode::UgreenNasCa => ugreen_nas_ca::architecture(),
-        RetailerCode::UgreenNasEu => ugreen_nas_eu::architecture(),
-        RetailerCode::UgreenNasDe => ugreen_nas_de::architecture(),
-        RetailerCode::UgreenNasUk => ugreen_nas_uk::architecture(),
-        RetailerCode::UgreenNasFr => ugreen_nas_fr::architecture(),
-        RetailerCode::UgreenNasEs => ugreen_nas_es::architecture(),
-        RetailerCode::UgreenNasIt => ugreen_nas_it::architecture(),
-        RetailerCode::UgreenNasAu => ugreen_nas_au::architecture(),
-        RetailerCode::UgreenNasJp => ugreen_nas_jp::architecture(),
-        RetailerCode::AnkerCom => anker_com::architecture(),
-        RetailerCode::AnkerJapanCom => anker_japan_com::architecture(),
-        RetailerCode::AnkerKr => anker_kr::architecture(),
-        RetailerCode::AnkerItalyCom => anker_italy_com::architecture(),
-        RetailerCode::AnkerNordicsCom => anker_nordics_com::architecture(),
-        RetailerCode::AnkerUk => anker_uk::architecture(),
-        RetailerCode::AnkerCa => anker_ca::architecture(),
-        RetailerCode::AnkerEu => anker_eu::architecture(),
-        RetailerCode::AnkerDe => anker_de::architecture(),
-        RetailerCode::AnkerFr => anker_fr::architecture(),
-        RetailerCode::AnkerPl => anker_pl::architecture(),
-        RetailerCode::AnkerAu => anker_au::architecture(),
-        RetailerCode::AnkerNz => anker_nz::architecture(),
-        RetailerCode::AnkerMy => anker_my::architecture(),
-        RetailerCode::AnkerVn => anker_vn::architecture(),
-    }
-}
 
 /// Parses `html` and extracts `retailer`'s architecture into a JSON tree.
 pub fn destructure(html: &str, retailer: RetailerCode) -> serde_json::Value {

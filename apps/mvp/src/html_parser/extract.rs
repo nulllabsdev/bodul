@@ -14,7 +14,7 @@
 use kuchiki::{ElementData, NodeDataRef, NodeRef};
 use serde_json::{Map, Value};
 
-use super::structure::{Attribute, RetailerArchitecture, Structure};
+use ::retailer_sourcing::parsing::structure::{Attribute, RetailerArchitecture, Structure};
 
 /// Extracts `architecture` from the parsed `node` into a JSON object.
 pub fn extract(node: &NodeRef, architecture: &RetailerArchitecture) -> Value {
@@ -285,7 +285,9 @@ mod tests {
     use serde_json::json;
 
     use super::extract;
-    use crate::html_parser::structure::{RetailerArchitecture, collection, json, json_after, particle, segment, trash};
+    use ::retailer_sourcing::parsing::structure::{
+        RetailerArchitecture, collection, json, json_after, particle, segment, trash,
+    };
 
     #[test]
     fn extracts_segments_and_particles() {
