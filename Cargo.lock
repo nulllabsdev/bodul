@@ -1905,6 +1905,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "retailer-sourcing"
+version = "0.1.0"
+
+[[package]]
 name = "rfc7239"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

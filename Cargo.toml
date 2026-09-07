@@ -3,5 +3,6 @@ resolver = "3"
 members = [
     "apps/mvp",
     "lib/money",
+    "lib/retailer-sourcing",
     "lib/shared",
 ]
